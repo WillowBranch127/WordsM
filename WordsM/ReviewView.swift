@@ -43,6 +43,7 @@ class ReviewViewModel: ObservableObject {
     @Published var result: QuizResult?
     @Published var aiReferenceMeaning: String?
     @Published var isLoadingAI: Bool = false
+    @Published var showHiddenField: Bool = false
 
     let mode: ReviewMode
     let manager: WordsManager
@@ -223,6 +224,7 @@ struct ReviewView: View {
                     direction: viewModel.direction,
                     state: viewModel.state,
                     userInput: $viewModel.userInput,
+                    showHiddenField: $viewModel.showHiddenField,
                     onSubmit: viewModel.submitAnswer,
                     onUnknown: viewModel.showUnknown,
                     onNext: viewModel.nextWord,
@@ -249,6 +251,7 @@ struct QuizCard: View {
     let direction: QuizDirection
     let state: QuizState
     @Binding var userInput: String
+    @Binding var showHiddenField: Bool
     let onSubmit: () -> Void
     let onUnknown: () -> Void
     let onNext: () -> Void
@@ -373,25 +376,38 @@ struct QuizCard: View {
 
     private var captchaInputView: some View {
         VStack(spacing: 12) {
-            // 验证码格子
+            // 验证码格子（可点击）
             HStack(spacing: 8) {
                 ForEach(0..<word.word.count, id: \.self) { index in
                     captchaCell(index: index)
+                        .onTapGesture {
+                            // 点击格子时聚焦到隐藏的 TextField
+                            showHiddenField = true
+                        }
                 }
             }
             .padding(.horizontal, 40)
             
-            // 可见的 TextField，与格子对齐
-            TextField("", text: $userInput)
-                .textFieldStyle(.plain)
-                .font(.system(size: 32, design: .monospaced))
-                .multilineTextAlignment(.center)
-                .onChange(of: userInput) { _, newValue in
-                    // 限制输入长度不超过单词长度
-                    if newValue.count > word.word.count {
-                        userInput = String(newValue.prefix(word.word.count))
+            // 隐藏的 TextField（接收键盘输入）
+            if showHiddenField {
+                TextField("", text: $userInput)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 32, design: .monospaced))
+                    .foregroundStyle(.clear)
+                    .multilineTextAlignment(.center)
+                    .onChange(of: userInput) { _, newValue in
+                        // 限制输入长度不超过单词长度
+                        if newValue.count > word.word.count {
+                            userInput = String(newValue.prefix(word.word.count))
+                        }
                     }
-                }
+                    .onAppear {
+                        showHiddenField = true
+                    }
+                    .onDisappear {
+                        // 失去焦点时隐藏
+                    }
+            }
         }
         .padding(.top, 20)
     }
