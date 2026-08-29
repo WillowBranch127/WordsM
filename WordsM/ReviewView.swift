@@ -404,13 +404,18 @@ struct QuizCard: View {
     // MARK: - Chinese Input View
 
     private var chineseInputView: some View {
-        return HStack {
-            TextField("", text: $userInput)
-                .font(.system(size: 22, weight: .medium))
-                .textFieldStyle(.plain)
-                .focused($isTextFieldFocused)
-                .disabled(state == .result)
-            Spacer()
+        let normalized = userInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        let leadingPad: CGFloat = normalized.isEmpty ? 0 : 14
+        return VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                Color.clear.frame(width: leadingPad)
+                TextField(normalized.isEmpty ? "输入中文释义…" : "", text: $userInput)
+                    .font(.system(size: 22, weight: .medium))
+                    .textFieldStyle(.plain)
+                    .focused($isTextFieldFocused)
+                    .disabled(state == .result)
+                Spacer()
+            }
         }
         .frame(height: 56)
         .padding(.horizontal, 40)
