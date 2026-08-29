@@ -419,7 +419,7 @@ struct QuizCard: View {
                 .disabled(state == .result)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 56)
+        .frame(height: 72)
         .padding(.horizontal, 40)
         .padding(.top, 16)
     }
