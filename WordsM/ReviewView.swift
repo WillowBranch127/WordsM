@@ -249,7 +249,8 @@ struct QuizCard: View {
         VStack(spacing: 0) {
             // 顶部标题栏
             titleView
-
+                .frame(maxWidth: .infinity)
+            
             // 主要内容区（全屏单词卡片）
             VStack(spacing: 40) {
                 // 题目区域 - 大字体居中
@@ -304,7 +305,8 @@ struct QuizCard: View {
         Text(mode == .learned ? "复习模式" : "错题本")
             .font(.title)
             .fontWeight(.bold)
-            .padding(.top, 20)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
     }
 
     // MARK: - Question View
