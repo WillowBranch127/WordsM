@@ -373,23 +373,40 @@ struct QuizCard: View {
 
     private var captchaInputView: some View {
         VStack(spacing: 12) {
-            // 验证码格子
-            HStack(spacing: 8) {
-                ForEach(0..<max(word.word.count, userInput.count + 1), id: \.self) { index in
-                    captchaCell(index: index)
+            // 点击区域触发输入
+            GeometryReader { geometry in
+                ZStack {
+                    // 透明的点击层，覆盖整个输入区域
+                    Color.clear
+                        .onTapGesture {
+                            // 触发 TextField 焦点
+                        }
+                    
+                    // 验证码格子
+                    HStack(spacing: 8) {
+                        ForEach(0..<word.word.count, id: \.self) { index in
+                            captchaCell(index: index)
+                        }
+                    }
+                    .padding(.horizontal, 40)
+                    
+                    // 透明的 TextField，放在格子下方
+                    TextField("", text: $userInput)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 32, design: .monospaced))
+                        .foregroundStyle(.clear)
+                        .multilineTextAlignment(.center)
+                        .frame(height: 60)
+                        .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                        .onChange(of: userInput) { _, newValue in
+                            // 限制输入长度不超过单词长度
+                            if newValue.count > word.word.count {
+                                userInput = String(newValue.prefix(word.word.count))
+                            }
+                        }
                 }
             }
-            .padding(.horizontal, 40)
-            
-            // 可见但透明的 TextField，用于接收键盘输入
-            TextField("", text: $userInput)
-                .textFieldStyle(.plain)
-                .font(.system(size: 32, design: .monospaced))
-                .foregroundStyle(.clear)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, 40)
-                .background(Color.clear)
+            .frame(height: 100)
         }
         .padding(.top, 20)
     }
