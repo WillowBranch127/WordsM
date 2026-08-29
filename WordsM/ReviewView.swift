@@ -263,7 +263,7 @@ struct QuizCard: View {
     var body: some View {
         VStack(spacing: 0) {
             // 顶部标题栏
-            headerView
+            titleView
 
             // 主要内容区（全屏单词卡片）
             VStack(spacing: 40) {
@@ -313,24 +313,13 @@ struct QuizCard: View {
         }
     }
 
-    // MARK: - Header
+    // MARK: - Title
 
-    private var headerView: some View {
-        HStack {
-            Text(mode == .learned ? "复习模式" : "错题本")
-                .font(.title2)
-                .fontWeight(.semibold)
-            Spacer()
-            NavigationLink(destination: ContentView()) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.title2)
-                    .foregroundStyle(.secondary)
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
-        .background(Color(NSColor.controlBackgroundColor))
+    private var titleView: some View {
+        Text(mode == .learned ? "复习模式" : "错题本")
+            .font(.title)
+            .fontWeight(.bold)
+            .padding(.top, 20)
     }
 
     // MARK: - Question View
