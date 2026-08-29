@@ -372,32 +372,31 @@ struct QuizCard: View {
     // MARK: - Captcha Input View (英文验证码式输入)
 
     private var captchaInputView: some View {
-        // 使用 ZStack 让 TextField 覆盖在格子上
-        ZStack(alignment: .center) {
-            // 底层：验证码格子显示
-            HStack(spacing: 8) {
-                ForEach(0..<word.word.count, id: \.self) { index in
-                    captchaCell(index: index)
-                }
-            }
-            .padding(.horizontal, 40)
-            
-            // 上层：透明 TextField，完全覆盖格子区域
+        VStack(spacing: 0) {
+            // 透明 TextField - 放置在格子位置，文字透明但光标可见
             TextField("", text: $userInput)
                 .textFieldStyle(.plain)
                 .font(.system(size: 32, design: .monospaced))
                 .foregroundStyle(.clear)
                 .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, 40)
+                .frame(height: 48)
                 .onChange(of: userInput) { _, newValue in
                     // 限制输入长度不超过单词长度
                     if newValue.count > word.word.count {
                         userInput = String(newValue.prefix(word.word.count))
                     }
                 }
+            
+            // 验证码格子显示层 - 覆盖在 TextField 上方
+            HStack(spacing: 8) {
+                ForEach(0..<word.word.count, id: \.self) { index in
+                    captchaCell(index: index)
+                }
+            }
+            .padding(.horizontal, 40)
+            .allowsHitTesting(false)  // 不拦截点击事件
         }
-        .frame(height: 80)
+        .frame(height: 60)
     }
 
     private func captchaCell(index: Int) -> some View {
