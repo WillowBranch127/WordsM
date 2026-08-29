@@ -69,31 +69,9 @@ struct ExploreView: View {
     }
 }
 
-// MARK: - Review Mode (stub)
+// MARK: - Preview
 
-enum ReviewMode {
-    case learned
-    case mistakes
-}
-
-struct ReviewView: View {
-    let mode: ReviewMode
-    @EnvironmentObject var manager: WordsManager
-
-    var body: some View {
-        VStack(spacing: 16) {
-            Text(mode == .learned ? "复习模式" : "错题本")
-                .font(.title2)
-            Text("即将推出...")
-                .foregroundStyle(.secondary)
-        }
-        .padding(.bottom, 24)
-        .toolbar {
-            ToolbarItem(placement: .automatic) {
-                NavigationLink(destination: ContentView()) {
-                    Label("退出", systemImage: "xmark.circle")
-                }
-            }
-        }
-    }
+#Preview {
+    ExploreView()
+        .environmentObject(WordsManager())
 }
