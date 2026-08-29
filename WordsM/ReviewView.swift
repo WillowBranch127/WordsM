@@ -372,31 +372,35 @@ struct QuizCard: View {
     // MARK: - Captcha Input View (英文验证码式输入)
 
     private var captchaInputView: some View {
-        VStack(spacing: 0) {
-            // 透明 TextField - 放置在格子位置，文字透明但光标可见
-            TextField("", text: $userInput)
-                .textFieldStyle(.plain)
-                .font(.system(size: 32, design: .monospaced))
-                .foregroundStyle(.clear)
-                .multilineTextAlignment(.center)
-                .frame(height: 48)
-                .onChange(of: userInput) { _, newValue in
-                    // 限制输入长度不超过单词长度
-                    if newValue.count > word.word.count {
-                        userInput = String(newValue.prefix(word.word.count))
-                    }
-                }
-            
-            // 验证码格子显示层 - 覆盖在 TextField 上方
+        // 自定义输入区域 - 完全控制光标位置
+        VStack(spacing: 4) {
+            // 输入字符显示行 - 显示已输入的字母
             HStack(spacing: 8) {
                 ForEach(0..<word.word.count, id: \.self) { index in
-                    captchaCell(index: index)
+                    let char = index < userInput.count 
+                        ? String(userInput[userInput.index(userInput.startIndex, offsetBy: index)])
+                        : ""
+                    Text(char)
+                        .font(.system(size: 32, weight: .medium, design: .monospaced))
+                        .frame(width: 40, height: 40)
+                        .foregroundStyle(.primary)
+                }
+            }
+            
+            // 下划线行
+            HStack(spacing: 8) {
+                ForEach(0..<word.word.count, id: \.self) { index in
+                    Rectangle()
+                        .fill(Color.secondary.opacity(0.5))
+                        .frame(height: 2)
                 }
             }
             .padding(.horizontal, 40)
-            .allowsHitTesting(false)  // 不拦截点击事件
         }
-        .frame(height: 60)
+        .padding(.top, 20)
+        .onTapGesture {
+            // 点击任意位置都可以输入
+        }
     }
 
     private func captchaCell(index: Int) -> some View {
