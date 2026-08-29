@@ -380,11 +380,16 @@ struct QuizCard: View {
                 }
             }
             .padding(.horizontal, 40)
-
-            // 隐藏的真实输入框（用于键盘输入）
+            
+            // 可见但透明的 TextField，用于接收键盘输入
             TextField("", text: $userInput)
-                .opacity(0)
-                .frame(width: 1, height: 1)
+                .textFieldStyle(.plain)
+                .font(.system(size: 32, design: .monospaced))
+                .foregroundStyle(.clear)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 40)
+                .background(Color.clear)
         }
         .padding(.top, 20)
     }
