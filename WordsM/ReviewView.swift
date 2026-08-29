@@ -390,9 +390,8 @@ struct QuizCard: View {
     }
 
     private func captchaCell(index: Int) -> some View {
-        let char = userInput.utf8CString[index] != 0
-            ? String(userInput.dropFirst(index).prefix(1))
-            : ""
+        let chars = Array(userInput)
+        let char = index < chars.count ? String(chars[index]) : ""
         let isEmpty = char.isEmpty
 
         return VStack(spacing: 4) {
