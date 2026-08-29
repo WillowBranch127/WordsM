@@ -182,7 +182,9 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				WATCHOS_DEPLOYMENT_TARGET = 27.0;
 				XROS_DEPLOYMENT_TARGET = 27.0;
-			};
+			
+				CODE_SIGN_ENTITLEMENTS = WordsM/WordsM.entitlements;
+};
 			name = Debug;
 		};
 		000000000000000012000000 /* Release configuration for PBXProject "WordsM" */ = {
@@ -244,7 +246,9 @@
 				SWIFT_COMPILATION_MODE = wholemodule;
 				WATCHOS_DEPLOYMENT_TARGET = 27.0;
 				XROS_DEPLOYMENT_TARGET = 27.0;
-			};
+			
+				CODE_SIGN_ENTITLEMENTS = WordsM/WordsM.entitlements;
+};
 			name = Release;
 		};
 		000000000000000111000000 /* Debug configuration for PBXNativeTarget "WordsM" */ = {
@@ -281,7 +285,9 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-			};
+			
+				CODE_SIGN_ENTITLEMENTS = WordsM/WordsM.entitlements;
+};
 			name = Debug;
 		};
 		000000000000000112000000 /* Release configuration for PBXNativeTarget "WordsM" */ = {
@@ -318,7 +324,9 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-			};
+			
+				CODE_SIGN_ENTITLEMENTS = WordsM/WordsM.entitlements;
+};
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
