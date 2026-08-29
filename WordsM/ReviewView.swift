@@ -374,104 +374,67 @@ struct QuizCard: View {
     }
 
     // MARK: - Captcha Input View (英文验证码式输入)
-
-    // MARK: - Captcha Input View
     
     /// 验证码式输入框 - 完全自定义实现
-    /// 使用 GeometryReader 确保输入区域与格子精确对齐
     private var captchaInputView: some View {
-        GeometryReader { geometry in
-            VStack(spacing: 0) {
-                // 字符显示区域
-                HStack(spacing: 12) {
-                    ForEach(0..<word.word.count, id: \.self) { index in
-                        captchaBox(index: index)
-                    }
-                }
-                
-                // 下划线区域
-                HStack(spacing: 12) {
-                    ForEach(0..<word.word.count, id: \.self) { index in
-                        underlineBox(index: index)
-                    }
-                }
-                
-                // 输入区域 - 与下划线等宽，覆盖下划线位置
-                Rectangle()
-                    .fill(Color.clear)
-                    .frame(height: 50)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        showInputField = true
-                    }
-                    .overlay(
-                        // 透明 TextField 覆盖在输入区域上
+        let charCount = word.word.count
+        let itemWidth: CGFloat = 36   // 每个字母/下划线单元格的宽度
+        let spacing: CGFloat = 12     // 格子之间的间距
+        let totalWidth: CGFloat = CGFloat(charCount) * itemWidth + CGFloat(max(0, charCount - 1)) * spacing
+
+        return ZStack {
+            // 1. 底层视觉渲染层
+            HStack(spacing: spacing) {
+                ForEach(0..<charCount, id: \.self) { index in
+                    VStack(spacing: 6) {
+                        // 字符或光标
                         ZStack {
-                            TextField("", text: $userInput)
-                                .textFieldStyle(.plain)
-                                .font(.system(size: 32, design: .monospaced))
-                                .foregroundStyle(.clear)
-                                .opacity(showInputField ? 1 : 0)
-                                .onChange(of: userInput) { _, newValue in
-                                    if newValue.count > word.word.count {
-                                        userInput = String(newValue.prefix(word.word.count))
-                                    }
-                                }
-                                .onChange(of: showInputField) { _, isVisible in
-                                    if !isVisible {
-                                        userInput = ""
-                                    }
-                                }
-                            
-                            // 光标指示器
-                            if showInputField && state == .idle {
+                            if index < userInput.count {
+                                let charIndex = userInput.index(userInput.startIndex, offsetBy: index)
+                                Text(String(userInput[charIndex]))
+                                    .font(.system(size: 32, weight: .bold, design: .monospaced))
+                                    .foregroundStyle(.primary)
+                            } else if index == userInput.count && state == .idle && isTextFieldFocused {
+                                // 自定义伪光标
                                 Rectangle()
                                     .fill(Color.blue)
-                                    .frame(width: 2, height: 40)
-                                    .position(x: CGFloat(20 + userInput.count * 52), y: 25)
+                                    .frame(width: 2, height: 28)
+                            } else {
+                                Color.clear.frame(height: 28)
                             }
                         }
-                    )
+                        .frame(height: 36)
+
+                        // 对应的下划线
+                        Rectangle()
+                            .fill(index <= userInput.count ? Color.blue : Color.secondary.opacity(0.4))
+                            .frame(width: itemWidth, height: 3)
+                            .cornerRadius(1.5)
+                    }
+                    .frame(width: itemWidth)
+                }
             }
+
+            // 2. 顶层：完全覆盖的透明 TextField 接收输入
+            TextField("", text: $userInput)
+                .focused($isTextFieldFocused)
+                .textFieldStyle(.plain)
+                .foregroundStyle(.clear) 
+                .tint(.clear)
+                .accentColor(.clear) 
+                .opacity(0.01) 
+                .disableAutocorrection(true)
+                .frame(width: totalWidth, height: 50)
+                .contentShape(Rectangle()) 
+                .onChange(of: userInput) { _, newValue in
+                    if newValue.count > charCount {
+                        userInput = String(newValue.prefix(charCount))
+                    }
+                }
         }
-        .padding(.horizontal, 40)
+        .padding(.horizontal, 20)
     }
-    
-    /// 单个字符格子
-    private func captchaBox(index: Int) -> some View {
-        let char = index < userInput.count 
-            ? String(userInput[userInput.index(userInput.startIndex, offsetBy: index)])
-            : ""
-        
-        return ZStack {
-            // 背景
-            RoundedRectangle(cornerRadius: 4)
-                .fill(Color.clear)
-            
-            // 字符或光标
-            if !char.isEmpty {
-                Text(char)
-                    .font(.system(size: 32, weight: .medium, design: .monospaced))
-                    .foregroundStyle(.primary)
-            } else if index == userInput.count && state == .idle {
-                // 显示光标在当前位置
-                Rectangle()
-                    .fill(Color.blue)
-                    .frame(width: 2, height: 40)
-                    .position(x: 20, y: 20)
-            }
-        }
-        .frame(width: 40, height: 48)
-    }
-    
-    /// 下划线格子
-    private func underlineBox(index: Int) -> some View {
-        return Rectangle()
-            .fill(Color.secondary.opacity(0.4))
-            .frame(height: 2)
-            .frame(maxWidth: .infinity)
-    }
-    
+
     // MARK: - Chinese Input View
 
     private var chineseInputView: some View {
