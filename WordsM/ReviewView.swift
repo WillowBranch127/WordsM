@@ -45,13 +45,13 @@ class ReviewViewModel: ObservableObject {
     @Published var isLoadingAI: Bool = false
 
     let mode: ReviewMode
-    @EnvironmentObject var manager: WordsManager
+    let manager: WordsManager
 
     // MARK: - Init
 
-    init(mode: ReviewMode) {
+    init(mode: ReviewMode, manager: WordsManager) {
         self.mode = mode
-        // Don't load word here - wait for environmentObject to be injected
+        self.manager = manager
     }
     
     func loadWordIfNeeded() {
@@ -188,11 +188,14 @@ class ReviewViewModel: ObservableObject {
 
 struct ReviewView: View {
     let mode: ReviewMode
+    @StateObject private var manager: WordsManager
     @StateObject private var viewModel: ReviewViewModel
 
     init(mode: ReviewMode) {
         self.mode = mode
-        _viewModel = StateObject(wrappedValue: ReviewViewModel(mode: mode))
+        let wm = WordsManager()
+        _manager = StateObject(wrappedValue: wm)
+        _viewModel = StateObject(wrappedValue: ReviewViewModel(mode: mode, manager: wm))
     }
 
     var body: some View {
@@ -233,7 +236,6 @@ struct ReviewView: View {
                 EmptyState(mode: mode)
             }
         }
-        .environmentObject(viewModel.manager)
         .frame(minWidth: 440, maxWidth: 520, minHeight: 480, maxHeight: 560)
         .onAppear { viewModel.loadWordIfNeeded() }
     }
