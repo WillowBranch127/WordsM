@@ -252,6 +252,7 @@ struct QuizCard: View {
     let direction: QuizDirection
     let state: QuizState
     @Binding var userInput: String
+    @FocusState private var isTextFieldFocused: Bool
     @Binding var showInputField: Bool
     let onSubmit: () -> Void
     let onUnknown: () -> Void
