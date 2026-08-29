@@ -165,7 +165,8 @@ class ReviewViewModel: ObservableObject {
                 word: word,
                 userInput: userInput,
                 baseURL: baseURL,
-                apiKey: apiKey
+                apiKey: apiKey,
+                model: UserDefaults.standard.string(forKey: "wordsM_selectedModel") ?? "gpt-4"
             )
             aiReferenceMeaning = response.referenceMeaning
             result = response.isReasonable ? .correct : .incorrect
@@ -579,12 +580,13 @@ struct AIHelper {
         word: Word,
         userInput: String,
         baseURL: String,
-        apiKey: String
+        apiKey: String,
+        model: String
     ) async throws -> AIResponse {
         let endpoint = URL(string: "\(baseURL.rstripSlash())/chat/completions")!
 
         let body: [String: Any] = [
-            "model": "gpt-4",
+            "model": model,
             "messages": [
                 ["role": "system", "content": """
                 你是一个中文释义判断助手。
