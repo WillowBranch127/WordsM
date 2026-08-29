@@ -51,6 +51,11 @@ class ReviewViewModel: ObservableObject {
 
     init(mode: ReviewMode) {
         self.mode = mode
+        // Don't load word here - wait for environmentObject to be injected
+    }
+    
+    func loadWordIfNeeded() {
+        guard currentWord == nil else { return }
         loadNextWord()
     }
 
@@ -230,6 +235,7 @@ struct ReviewView: View {
         }
         .environmentObject(viewModel.manager)
         .frame(minWidth: 440, maxWidth: 520, minHeight: 480, maxHeight: 560)
+        .onAppear { viewModel.loadWordIfNeeded() }
     }
 }
 
