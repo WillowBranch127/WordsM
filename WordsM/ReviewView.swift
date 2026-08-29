@@ -372,23 +372,24 @@ struct QuizCard: View {
     // MARK: - Captcha Input View (英文验证码式输入)
 
     private var captchaInputView: some View {
-        VStack(spacing: 0) {
-            // 验证码格子（点击区域）
+        // 使用 ZStack 让 TextField 覆盖在格子上
+        ZStack(alignment: .center) {
+            // 底层：验证码格子显示
             HStack(spacing: 8) {
                 ForEach(0..<word.word.count, id: \.self) { index in
                     captchaCell(index: index)
                 }
             }
             .padding(.horizontal, 40)
-            .padding(.vertical, 8)
             
-            // 透明 TextField - 永远存在，点击任意位置都可输入
+            // 上层：透明 TextField，完全覆盖格子区域
             TextField("", text: $userInput)
                 .textFieldStyle(.plain)
                 .font(.system(size: 32, design: .monospaced))
                 .foregroundStyle(.clear)
                 .multilineTextAlignment(.center)
-                .frame(height: 50)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 40)
                 .onChange(of: userInput) { _, newValue in
                     // 限制输入长度不超过单词长度
                     if newValue.count > word.word.count {
@@ -396,6 +397,7 @@ struct QuizCard: View {
                     }
                 }
         }
+        .frame(height: 80)
     }
 
     private func captchaCell(index: Int) -> some View {
