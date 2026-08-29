@@ -3,19 +3,19 @@
 ## 项目概述
 
 **WordsM** 是一个用 Swift/SwiftUI 开发的辅助背单词 iOS/macOS app。
-当前处于早期开发阶段（ ContentView.swift 仅含 "Hello, world!" 占位符）。
+目前主界面、数据层、设置界面已实现，探索模式入口已就绪。
 
 ---
 
 ## 核心功能设计
 
-### 主页面（待实现）
+### 主页面
 三个功能入口按钮：
 1. **探索模式** — 随机浏览单词库
 2. **复习模式** — 对已学单词进行主动回忆测试
 3. **错题本** — 复习已标记的错误单词
 
-每个子模式左上角有**退出按钮**，返回主页面。
+每个子模式通过 `NavigationLink` 导航，返回主页使用回到根视图的方式。
 
 ---
 
@@ -24,9 +24,9 @@
 - 从 `words.json` 中随机抽选一个**未被学过**的单词
 - 显示该单词的所有信息（单词、音标、词性、中文释义）
 - **"记住了，下一个"** 按钮：
-  - 将该单词写入"已学单词文件"（`learned.json`，存 ID 列表）
-  - 再从词库中随机抽一个未学过的单词继续
-- **退出**按钮回到主页
+  - 调用 `WordsManager.markAsLearned(id)` 将该单词 ID 写入 `learned.json`
+  - 再随机抽取下一个未学单词
+- 所有单词学完后显示"已全部学完"提示页
 
 **重要约束**：探索模式只展示未学过的单词，避免重复。
 
@@ -71,13 +71,14 @@
 
 ## 数据存储
 
-所有数据文件均存储在 app 的沙盒目录（`FileManager.default.urls(for:.documentDirectory, in:.userDomainMask)`）中。
+所有持久化数据存储在 app 的沙盒 Documents 目录中（`FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)`）。
 
-| 文件 | 格式 | 内容 |
+| 数据 | 存储方式 | 说明 |
 |------|------|------|
-| `words.json` | JSON 数组 | 完整词库，**打包时内置** |
-| `learned.json` | JSON 数组 | 已学单词的 ID 列表（仅整数） |
-| `mistakes.json` | JSON 数组 | 错题本单词的 ID 列表（仅整数） |
+| 词库 `words.json` | 打包内置（Bundle） | 读取，不修改 |
+| 已学 ID 列表 `learned.json` | Documents 目录 JSON 文件 | 仅存整数 ID 数组 |
+| 错题 ID 列表 `mistakes.json` | Documents 目录 JSON 文件 | 仅存整数 ID 数组 |
+| AI 配置（Base URL + API Key） | `UserDefaults` | 键名 `wordsM_baseURL`、`wordsM_apiKey`，字段变更时自动保存 |
 
 使用 ID 而非字符串的原因：
 - 避免同音词/近义词歧义
@@ -88,8 +89,8 @@
 
 ## 词库数据
 
-### words.json（已生成）
-- 位置：`WordsM/words.json`
+### words.json
+- 位置：`WordsM/words.json`（内置于 Bundle）
 - 来源：`WordsM/words.csv`（3686 行，UTF-8 with BOM）
 - 每条目结构：
   ```json
@@ -113,35 +114,59 @@ python3 WordsM/convert_csv_to_json.py
 
 ---
 
-## 设置项
+## 架构与实现
 
-- **AI 配置**：Base URL + API Key（OpenAI 兼容格式）
-- 存储位置：`UserDefaults` 或 app group 配置文件
-- 用途：复习模式中"英文→中文"方向的语义判断
-
----
-
-## 当前文件清单
-
+### 文件结构
 ```
 WordsM/
-├── ContentView.swift          # 占位符，待实现主界面
-├── words.json                 # 词库（3686 词）
-├── words.csv                  # 原始词库（CSV 格式，UTF-8 BOM）
-├── words.pdf                  # 词库 PDF 源文件
-├── convert_csv_to_json.py     # CSV → JSON 转换脚本
-└── convert_pdf_to_csv.py      # PDF → CSV 转换脚本（历史遗留）
+├── WordsMApp.swift        # @main 入口，挂载 WordsManager 到 environmentObject
+├── ContentView.swift      # 主界面：标题 + 三按钮（探索/复习/错题本）+ 底部统计
+├── WordsManager.swift     # 数据层：加载词库，读写 learned/mistakes，提供随机抽词方法
+├── ExploreView.swift      # 探索模式：展示单词 + "记住了，下一个"按钮
+├── ReviewView.swift       # 复习模式（待实现）：支持两种出题方向
+├── SettingsView.swift     # 设置界面：AI Base URL + API Key，onChange 自动保存
+├── words.json             # 内置词库（3686 词）
+└── words.csv              # 原始词库（CSV 格式，UTF-8 BOM）
 ```
+
+### WordsManager
+- `ObservableObject`，由 `@StateObject` 在 App 入口创建并注入为 `environmentObject`
+- `init()` 时从 Bundle 加载词库，从 Documents 目录加载 learned/mistakes JSON
+- 提供 `randomUnlearnedWord()`、`randomLearnedWord()`、`randomMistakeWord()` 供各模式使用
+- `addToMistakes(_:)` / `removeFromMistakes(_:)` 同步更新 `mistakes.json`
+- `markAsLearned(_:)` 同步更新 `learned.json`
+
+### 设置窗口
+- 通过 `Settings {}` Scene 注册，macOS 自动在 App 菜单生成"Settings…"入口（⌘,）
+- 关闭时自动保存，无需确认按钮
+- AI 配置存储于 `UserDefaults`，键名固定为 `wordsM_baseURL` 和 `wordsM_apiKey`
+
+### 窗口规范
+- 主窗口使用 `.windowStyle(.hiddenTitleBar)` 隐藏系统标题栏
+- `.windowToolbarStyle(.unified)` 启用统一工具栏样式
+- 主界面固定尺寸：min 440×480，max 520×560
 
 ---
 
 ## 开发约定
 
 - **语言**：Swift / SwiftUI
-- **平台**：iOS / macOS（统一 UI）
+- **平台**：iOS / macOS（统一 UI，当前优先 macOS）
+- **Swift 版本**：6.0（项目 pbxproj 中 SWIFT_VERSION = 6.0）
 - **数据存储**：文件系统（JSON），非 Core Data
 - **分支前缀**：`codex/`
-- **当前阶段**：UI 架构搭建之前，先确保数据层可用
+
+---
+
+## 开发进度
+
+- [x] 数据层：`WordsManager`（词库加载、learned/mistakes 读写、随机抽词）
+- [x] 主界面：三按钮布局 + 底部统计（已学/错题数量）
+- [x] 探索模式：随机展示未学单词，"记住了，下一个"功能完整
+- [x] 设置界面：AI 配置，自动保存
+- [ ] 复习模式：两种出题方向的完整实现
+- [ ] 错题本模式：完整实现（含"移出错题本"逻辑）
+- [ ] AI 语义判断：调用 OpenAI 兼容 API 评估中文答案合理性
 
 ---
 
@@ -152,3 +177,4 @@ WordsM/
 3. 探索模式不展示已学单词
 4. 错题本中答对时出现"移出错题本"，仅当用户主动点击才移除
 5. ID 使用连续整数（1-based），由转换脚本一次性生成，后续不变
+6. AI 配置变更后即时生效，无需重启 app
