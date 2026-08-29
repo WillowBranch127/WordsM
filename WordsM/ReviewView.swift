@@ -247,15 +247,9 @@ struct QuizCard: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // 紧贴工具栏的标题
-            Text(mode == .learned ? "复习模式" : "错题本")
-                .font(.title3)
-                .fontWeight(.semibold)
-                .padding(.top, 4)
-                .padding(.bottom, 16)
-                .frame(maxWidth: .infinity)
+            titleHeader
 
-            // 2. 主体答题区
+            // 主体答题区
             VStack(spacing: 24) {
                 questionView
 
@@ -508,6 +502,16 @@ struct QuizCard: View {
             }
         }
         .padding(.horizontal, 40)
+    }
+
+    private var titleHeader: some View {
+        Text(mode == .learned ? "复习模式" : "错题本")
+            .font(.title3)
+            .fontWeight(.semibold)
+            .foregroundStyle(.primary)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
+            .frame(maxWidth: .infinity)
     }
 }
 
