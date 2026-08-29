@@ -80,7 +80,7 @@ class ReviewViewModel: ObservableObject {
         result = nil
         aiReferenceMeaning = nil
         isLoadingAI = false
-        direction = .cnToEn
+        direction = [.cnToEn, .enToCn].randomElement() ?? .cnToEn
     }
 
     // MARK: - Actions
@@ -149,11 +149,9 @@ class ReviewViewModel: ObservableObject {
         let apiKey = UserDefaults.standard.string(forKey: "wordsM_apiKey") ?? ""
 
         if baseURL.isEmpty || apiKey.isEmpty {
-            // 未配置 AI，使用简单匹配作为 fallback
-            let isReasonable = word.meaning.contains(userInput)
-                || userInput.split(separator: " ").allSatisfy { part in
-                    word.meaning.contains(String(part))
-                }
+            // 未配置 AI，关键词交集 fallback
+            let normalized = userInput.trimmingCharacters(in: .whitespacesAndNewlines)
+            let isReasonable = !normalized.isEmpty && normalized._keywordOverlap(wordMeaning: word.meaning)
             result = isReasonable ? .correct : .incorrect
             state = .result
             isLoadingAI = false
@@ -168,15 +166,16 @@ class ReviewViewModel: ObservableObject {
                 apiKey: apiKey,
                 model: UserDefaults.standard.string(forKey: "wordsM_selectedModel") ?? "gpt-4"
             )
+            print("[WordsM AI] word=\(word.word) input=\(userInput) isReasonable=\(response.isReasonable) ref=\(response.referenceMeaning)")
             aiReferenceMeaning = response.referenceMeaning
             result = response.isReasonable ? .correct : .incorrect
             state = .result
         } catch {
-            // 网络失败，降级为简单匹配
-            let isReasonable = word.meaning.contains(userInput)
-                || userInput.split(separator: " ").allSatisfy { part in
-                    word.meaning.contains(String(part))
-                }
+            print("[WordsM AI] error: \(error)")
+            // 网络失败，关键词交集 fallback
+            let normalized = userInput.trimmingCharacters(in: .whitespacesAndNewlines)
+            let isReasonable = !normalized.isEmpty && normalized._keywordOverlap(wordMeaning: word.meaning)
+            print("[WordsM AI] fallback(network error) word=\(word.word) input=\(userInput) isReasonable=\(isReasonable)")
             result = isReasonable ? .correct : .incorrect
             state = .result
         }
@@ -558,15 +557,31 @@ struct AIHelper {
             "model": model,
             "messages": [
                 ["role": "system", "content": """
-                你是一个中文释义判断助手。
-                用户给出一个英文单词和其中文释义，你需要判断用户的回答是否合理。
-                只返回 JSON：{"isReasonable": true/false, "referenceMeaning": "正确的中文释义"}
-                """],
+你是一名英语单词教学评估助手。判断用户写的中文释义是否合理。
+
+判定标准：
+- 用户答案与正确释义核心含义一致 → isReasonable: true
+- 用户回答了同义词、近义词、或至少一个主要义项 → isReasonable: true
+- 用户答案明显偏题、写了其他单词的释义 → isReasonable: false
+- 用户答案过短、无意义（如"对"、"好"）或仅注音不含含义 → isReasonable: false
+
+规则：
+1. 多义词有多个义项（用分号或序号分隔），用户答出其中一个主要义项即算合理。
+2. 用户答案可以比正确释义更口语化或更简洁，只要核心含义正确即可。
+3. 义项顺序不同不算错，以含义匹配为准。
+4. referenceMeaning 必须固定输出 word.meaning 的原始内容，不修改、不重写。
+5. 只返回 JSON，不要包含任何其他文字或 markdown。
+"""],
                 ["role": "user", "content": """
-                单词：\(word.word)
-                用户回答：\(userInput)
-                正确释义：\(word.meaning)
-                """],
+请判断以下用户对英文单词的中文释义是否合理：
+
+- 英文单词：\(word.word)
+- 词性：\(word.pos)
+- 正确释义：\(word.meaning)
+- 用户回答：\(userInput)
+
+只返回 JSON，格式为：{"isReasonable": true/false, "referenceMeaning": "<word的原始释义>"}
+"""],
             ],
             "temperature": 0.1
         ]
@@ -576,6 +591,7 @@ struct AIHelper {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        print("[WordsM AI] REQUEST_BODY: \(String(data: request.httpBody!, encoding: .utf8) ?? "(nil)")")
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
@@ -584,14 +600,58 @@ struct AIHelper {
             throw NSError(domain: "AIRequest", code: -1, userInfo: nil)
         }
 
-        let apiResponse = try JSONDecoder().decode(AIResponse.self, from: data)
-        return apiResponse
+        let rawText = String(data: data, encoding: .utf8) ?? "(empty)"
+        print("[WordsM AI] RAW_RESPONSE: \(rawText)")
+
+        // 从 OpenAI 兼容格式的 choices[0].message.content 中提取 AI 返回的 JSON
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let choices = json["choices"] as? [[String: Any]],
+           let firstChoice = choices.first,
+           let message = firstChoice["message"] as? [String: Any],
+           let contentStr = message["content"] as? String {
+            print("[WordsM AI] PARSED_CONTENT: \(contentStr)")
+            // 优先用 JSONDecoder 解析完整 JSON
+            if let respData = contentStr.data(using: .utf8),
+               let resp = try? JSONDecoder().decode(AIResponse.self, from: respData) {
+                return resp
+            }
+            // 容错：尝试从损坏的 JSON 字符串中提取 isReasonable
+            let isReasonable: Bool
+            if contentStr.contains("\"isReasonable\": true") {
+                isReasonable = true
+            } else if contentStr.contains("\"isReasonable\": false") {
+                isReasonable = false
+            } else {
+                throw NSError(domain: "AIResponseParse", code: -1,
+                              userInfo: [NSLocalizedDescriptionKey: "无法从 AI 响应中提取 isReasonable"])
+            }
+            // 提取 referenceMeaning：取 word.meaning 原始值作为 fallback
+            return AIResponse(isReasonable: isReasonable, referenceMeaning: word.meaning)
+        }
+        throw NSError(domain: "AIResponseParse", code: -1,
+                      userInfo: [NSLocalizedDescriptionKey: "AI 返回了非预期格式，无法解析 isReasonable"])
     }
 }
 
 // MARK: - String Extension
 
 extension String {
+    /// 判断用户输入与单词释义之间是否有足够的中文关键词交集
+    func _keywordOverlap(wordMeaning: String) -> Bool {
+        let inputTokens = self
+            .components(separatedBy: CharacterSet.punctuationCharacters.union(.whitespaces))
+            .filter { !$0.isEmpty }
+        let meaningParts = wordMeaning
+            .components(separatedBy: CharacterSet(charactersIn: "；,，。、"))
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        let meaningTokens = meaningParts.joined(separator: " ")
+            .components(separatedBy: CharacterSet.punctuationCharacters.union(.whitespaces))
+            .filter { !$0.isEmpty }
+        let hits = inputTokens.filter { meaningTokens.contains($0) }.count
+        return hits >= (inputTokens.count >= 2 ? 2 : 1)
+    }
+
     func rstripSlash() -> String {
         hasSuffix("/") ? String(dropLast()) : self
     }
