@@ -371,77 +371,66 @@ struct QuizCard: View {
 
     // MARK: - Captcha Input View (英文验证码式输入)
 
+    // MARK: - Captcha Input View
+    
+    /// 验证码式输入框 - 完全自定义实现
     private var captchaInputView: some View {
         VStack(spacing: 0) {
-            // 透明 TextField - 放在最底层接收输入
-            TextField("", text: $userInput)
-                .textFieldStyle(.plain)
-                .font(.system(size: 32, design: .monospaced))
-                .foregroundStyle(.clear)
-                .frame(height: 1)
-                .onChange(of: userInput) { _, newValue in
-                    // 限制输入长度不超过单词长度
-                    if newValue.count > word.word.count {
-                        userInput = String(newValue.prefix(word.word.count))
-                    }
-                }
-            
-            // 自定义显示层 - 覆盖在 TextField 上方
-            VStack(spacing: 4) {
-                // 字符显示行
-                HStack(spacing: 8) {
-                    ForEach(0..<word.word.count, id: \.self) { index in
-                        let char = index < userInput.count 
-                            ? String(userInput[userInput.index(userInput.startIndex, offsetBy: index)])
-                            : ""
-                        Text(char)
-                            .font(.system(size: 32, weight: .medium, design: .monospaced))
-                            .frame(width: 40, height: 40)
-                            .foregroundStyle(.primary)
-                    }
-                }
-                
-                // 下划线行
-                HStack(spacing: 8) {
-                    ForEach(0..<word.word.count, id: \.self) { index in
-                        Rectangle()
-                            .fill(Color.secondary.opacity(0.5))
-                            .frame(height: 2)
-                    }
+            // 字符显示区域
+            HStack(spacing: 0) {
+                ForEach(0..<word.word.count, id: \.self) { index in
+                    captchaBox(index: index)
                 }
             }
-            .padding(.horizontal, 40)
+            
+            // 下划线区域
+            HStack(spacing: 0) {
+                ForEach(0..<word.word.count, id: \.self) { index in
+                    underlineBox(index: index)
+                }
+            }
         }
-        .frame(height: 60)
-        .contentShape(Rectangle())
+        .padding(.horizontal, 40)
         .onTapGesture {
-            // 点击任何地方都能触发输入
+            // 点击任何地方都能激活输入
         }
     }
-
-    private func captchaCell(index: Int) -> some View {
-        let chars = Array(userInput)
-        let char = index < chars.count ? String(chars[index]) : ""
-        let isEmpty = char.isEmpty
-
-        return VStack(spacing: 4) {
-            // 字符显示区
-            Text(char)
-                .font(.system(size: 32, weight: .medium, design: .monospaced))
-                .frame(width: 40, height: 48)
-                .foregroundStyle(isEmpty ? .secondary : .primary)
-
-            // 下划线
-            Rectangle()
-                .fill(Color.secondary.opacity(isEmpty ? 0.4 : 0.8))
-                .frame(height: 2)
-                .frame(maxWidth: .infinity)
+    
+    /// 单个字符格子
+    private func captchaBox(index: Int) -> some View {
+        let char = index < userInput.count 
+            ? String(userInput[userInput.index(userInput.startIndex, offsetBy: index)])
+            : ""
+        
+        return ZStack {
+            // 背景
+            RoundedRectangle(cornerRadius: 4)
+                .fill(Color.clear)
+            
+            // 字符或光标
+            if !char.isEmpty {
+                Text(char)
+                    .font(.system(size: 32, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.primary)
+            } else if index == userInput.count && state == .idle {
+                // 显示光标在当前位置
+                Rectangle()
+                    .fill(Color.blue)
+                    .frame(width: 2, height: 40)
+                    .position(x: 20, y: 20)
+            }
         }
-        .onTapGesture {
-            // 点击格子时可以聚焦到隐藏输入框（可选）
-        }
+        .frame(width: 40, height: 48)
     }
-
+    
+    /// 下划线格子
+    private func underlineBox(index: Int) -> some View {
+        return Rectangle()
+            .fill(Color.secondary.opacity(0.4))
+            .frame(height: 2)
+            .frame(maxWidth: .infinity)
+    }
+    
     // MARK: - Chinese Input View
 
     private var chineseInputView: some View {
