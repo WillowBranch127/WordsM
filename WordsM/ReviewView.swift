@@ -43,8 +43,6 @@ class ReviewViewModel: ObservableObject {
     @Published var result: QuizResult?
     @Published var aiReferenceMeaning: String?
     @Published var isLoadingAI: Bool = false
-    @Published var focusInput: Bool = false
-    @Published var showInputField: Bool = false
 
     let mode: ReviewMode
     let manager: WordsManager
@@ -225,7 +223,6 @@ struct ReviewView: View {
                     direction: viewModel.direction,
                     state: viewModel.state,
                     userInput: $viewModel.userInput,
-                    showInputField: $viewModel.showInputField,
                     onSubmit: viewModel.submitAnswer,
                     onUnknown: viewModel.showUnknown,
                     onNext: viewModel.nextWord,
@@ -253,7 +250,6 @@ struct QuizCard: View {
     let state: QuizState
     @Binding var userInput: String
     @FocusState private var isTextFieldFocused: Bool
-    @Binding var showInputField: Bool
     let onSubmit: () -> Void
     let onUnknown: () -> Void
     let onNext: () -> Void
@@ -304,6 +300,16 @@ struct QuizCard: View {
             .padding(.vertical, 40)
         }
         .frame(minWidth: 440, maxWidth: 520, minHeight: 480, maxHeight: 560)
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                isTextFieldFocused = true
+            }
+        }
+        .onChange(of: word.word) { _, _ in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                isTextFieldFocused = true
+            }
+        }
     }
 
     // MARK: - Header
