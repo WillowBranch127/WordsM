@@ -43,6 +43,7 @@ class ReviewViewModel: ObservableObject {
     @Published var result: QuizResult?
     @Published var aiReferenceMeaning: String?
     @Published var isLoadingAI: Bool = false
+    @Published var focusInput: Bool = false
     @Published var showInputField: Bool = false
 
     let mode: ReviewMode
@@ -427,7 +428,7 @@ struct QuizCard: View {
                                 Rectangle()
                                     .fill(Color.blue)
                                     .frame(width: 2, height: 40)
-                                    .position(x: 20 + userInput.count * 52, y: 25)
+                                    .position(x: CGFloat(20 + userInput.count * 52), y: 25)
                             }
                         }
                     )
