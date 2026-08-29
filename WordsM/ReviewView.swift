@@ -201,21 +201,6 @@ struct ReviewView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // 标题栏
-            HStack {
-                Text(mode == .learned ? "复习模式" : "错题本")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                Spacer()
-                NavigationLink(destination: ContentView()) {
-                    Label("退出", systemImage: "xmark.circle")
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal)
-            .padding(.vertical, 12)
-            .background(Color(NSColor.controlBackgroundColor))
-
             // 答题区
             if let word = viewModel.currentWord {
                 QuizCard(
