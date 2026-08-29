@@ -376,6 +376,19 @@ struct QuizCard: View {
     /// 验证码式输入框 - 完全自定义实现
     private var captchaInputView: some View {
         VStack(spacing: 0) {
+            // 透明 TextField - 接收键盘输入
+            TextField("", text: $userInput)
+                .textFieldStyle(.plain)
+                .font(.system(size: 32, design: .monospaced))
+                .foregroundStyle(.clear)
+                .frame(height: 1)
+                .onChange(of: userInput) { _, newValue in
+                    // 限制输入长度不超过单词长度
+                    if newValue.count > word.word.count {
+                        userInput = String(newValue.prefix(word.word.count))
+                    }
+                }
+            
             // 字符显示区域
             HStack(spacing: 0) {
                 ForEach(0..<word.word.count, id: \.self) { index in
