@@ -43,6 +43,7 @@ class ReviewViewModel: ObservableObject {
     @Published var result: QuizResult?
     @Published var aiReferenceMeaning: String?
     @Published var isLoadingAI: Bool = false
+    @Published var showInputField: Bool = false
 
     let mode: ReviewMode
     let manager: WordsManager
@@ -223,6 +224,7 @@ struct ReviewView: View {
                     direction: viewModel.direction,
                     state: viewModel.state,
                     userInput: $viewModel.userInput,
+                    showInputField: $viewModel.showInputField,
                     onSubmit: viewModel.submitAnswer,
                     onUnknown: viewModel.showUnknown,
                     onNext: viewModel.nextWord,
@@ -249,6 +251,7 @@ struct QuizCard: View {
     let direction: QuizDirection
     let state: QuizState
     @Binding var userInput: String
+    @Binding var showInputField: Bool
     let onSubmit: () -> Void
     let onUnknown: () -> Void
     let onNext: () -> Void
@@ -374,34 +377,61 @@ struct QuizCard: View {
     // MARK: - Captcha Input View
     
     /// 验证码式输入框 - 完全自定义实现
+    /// 使用 GeometryReader 确保输入区域与格子精确对齐
     private var captchaInputView: some View {
-        VStack(spacing: 8) {
-            // 字符显示区域 - 有间距的格子
-            HStack(spacing: 12) {
-                ForEach(0..<word.word.count, id: \.self) { index in
-                    captchaBox(index: index)
-                }
-            }
-            
-            // 下划线区域 - 与格子对齐
-            HStack(spacing: 12) {
-                ForEach(0..<word.word.count, id: \.self) { index in
-                    underlineBox(index: index)
-                }
-            }
-            
-            // 透明 TextField - 放在底部，大尺寸确保可点击
-            TextField("", text: $userInput)
-                .textFieldStyle(.plain)
-                .font(.system(size: 32, design: .monospaced))
-                .foregroundStyle(.clear)
-                .frame(height: 60)
-                .onChange(of: userInput) { _, newValue in
-                    // 限制输入长度不超过单词长度
-                    if newValue.count > word.word.count {
-                        userInput = String(newValue.prefix(word.word.count))
+        GeometryReader { geometry in
+            VStack(spacing: 0) {
+                // 字符显示区域
+                HStack(spacing: 12) {
+                    ForEach(0..<word.word.count, id: \.self) { index in
+                        captchaBox(index: index)
                     }
                 }
+                
+                // 下划线区域
+                HStack(spacing: 12) {
+                    ForEach(0..<word.word.count, id: \.self) { index in
+                        underlineBox(index: index)
+                    }
+                }
+                
+                // 输入区域 - 与下划线等宽，覆盖下划线位置
+                Rectangle()
+                    .fill(Color.clear)
+                    .frame(height: 50)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        showInputField = true
+                    }
+                    .overlay(
+                        // 透明 TextField 覆盖在输入区域上
+                        ZStack {
+                            TextField("", text: $userInput)
+                                .textFieldStyle(.plain)
+                                .font(.system(size: 32, design: .monospaced))
+                                .foregroundStyle(.clear)
+                                .opacity(showInputField ? 1 : 0)
+                                .onChange(of: userInput) { _, newValue in
+                                    if newValue.count > word.word.count {
+                                        userInput = String(newValue.prefix(word.word.count))
+                                    }
+                                }
+                                .onChange(of: showInputField) { _, isVisible in
+                                    if !isVisible {
+                                        userInput = ""
+                                    }
+                                }
+                            
+                            // 光标指示器
+                            if showInputField && state == .idle {
+                                Rectangle()
+                                    .fill(Color.blue)
+                                    .frame(width: 2, height: 40)
+                                    .position(x: 20 + userInput.count * 52, y: 25)
+                            }
+                        }
+                    )
+            }
         }
         .padding(.horizontal, 40)
     }
