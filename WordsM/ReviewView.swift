@@ -43,7 +43,6 @@ class ReviewViewModel: ObservableObject {
     @Published var result: QuizResult?
     @Published var aiReferenceMeaning: String?
     @Published var isLoadingAI: Bool = false
-    @Published var showHiddenField: Bool = false
 
     let mode: ReviewMode
     let manager: WordsManager
@@ -224,7 +223,6 @@ struct ReviewView: View {
                     direction: viewModel.direction,
                     state: viewModel.state,
                     userInput: $viewModel.userInput,
-                    showHiddenField: $viewModel.showHiddenField,
                     onSubmit: viewModel.submitAnswer,
                     onUnknown: viewModel.showUnknown,
                     onNext: viewModel.nextWord,
@@ -251,7 +249,6 @@ struct QuizCard: View {
     let direction: QuizDirection
     let state: QuizState
     @Binding var userInput: String
-    @Binding var showHiddenField: Bool
     let onSubmit: () -> Void
     let onUnknown: () -> Void
     let onNext: () -> Void
@@ -375,43 +372,30 @@ struct QuizCard: View {
     // MARK: - Captcha Input View (英文验证码式输入)
 
     private var captchaInputView: some View {
-        VStack(spacing: 12) {
-            // 验证码格子
+        VStack(spacing: 0) {
+            // 验证码格子（点击区域）
             HStack(spacing: 8) {
                 ForEach(0..<word.word.count, id: \.self) { index in
                     captchaCell(index: index)
                 }
             }
             .padding(.horizontal, 40)
+            .padding(.vertical, 8)
             
-            // 透明点击区域，覆盖格子下方
-            Color.clear
-                .frame(height: 80)
-                .onTapGesture {
-                    showHiddenField = true
+            // 透明 TextField - 永远存在，点击任意位置都可输入
+            TextField("", text: $userInput)
+                .textFieldStyle(.plain)
+                .font(.system(size: 32, design: .monospaced))
+                .foregroundStyle(.clear)
+                .multilineTextAlignment(.center)
+                .frame(height: 50)
+                .onChange(of: userInput) { _, newValue in
+                    // 限制输入长度不超过单词长度
+                    if newValue.count > word.word.count {
+                        userInput = String(newValue.prefix(word.word.count))
+                    }
                 }
-            
-            // 隐藏的 TextField（接收键盘输入）
-            if showHiddenField {
-                TextField("", text: $userInput)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 32, design: .monospaced))
-                    .foregroundStyle(.clear)
-                    .multilineTextAlignment(.center)
-                    .onChange(of: userInput) { _, newValue in
-                        // 限制输入长度不超过单词长度
-                        if newValue.count > word.word.count {
-                            userInput = String(newValue.prefix(word.word.count))
-                        }
-                    }
-                    .onChange(of: showHiddenField) { _, isVisible in
-                        if !isVisible {
-                            userInput = ""
-                        }
-                    }
-            }
         }
-        .padding(.top, 20)
     }
 
     private func captchaCell(index: Int) -> some View {
