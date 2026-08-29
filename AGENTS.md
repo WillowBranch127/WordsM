@@ -150,6 +150,7 @@ WordsM/
 
 ## 开发约定
 
+- **严格遵守 AGENTS.md**：实现功能时严格遵循本文档描述，禁止自行添加、修改或扩展功能范围；如需变更，先更新 AGENTS.md 并获得确认后再开发。
 - **语言**：Swift / SwiftUI
 - **平台**：iOS / macOS（统一 UI，当前优先 macOS）
 - **Swift 版本**：6.0（项目 pbxproj 中 SWIFT_VERSION = 6.0）
