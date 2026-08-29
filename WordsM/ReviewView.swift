@@ -259,66 +259,100 @@ struct QuizCard: View {
     let isLoadingAI: Bool
 
     var body: some View {
-        VStack(spacing: 16) {
-            // 题目区域
-            questionView
+        VStack(spacing: 0) {
+            // 顶部标题栏
+            headerView
 
-            // 输入区域
-            if state == .idle || state == .showingAnswer {
-                inputView
+            // 主要内容区（全屏单词卡片）
+            VStack(spacing: 40) {
+                // 题目区域 - 大字体居中
+                questionView
+
+                // 验证码式输入框（仅英文方向）
+                if direction == .cnToEn && (state == .idle || state == .showingAnswer) {
+                    captchaInputView
+                }
+
+                // 中文输入框（仅中文方向）
+                if direction == .enToCn && (state == .idle || state == .showingAnswer) {
+                    chineseInputView
+                }
+
+                Spacer()
+
+                // 反馈区域（答题后显示）
+                if let result = result {
+                    feedbackView(result: result)
+                }
+
+                // AI 参考释义
+                if let meaning = aiReferenceMeaning {
+                    Text("参考释义：\(meaning)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.bottom, 8)
+                }
+
+                // 底部按钮区域
+                bottomButtons
             }
-
-            // 反馈区域
-            if let result = result {
-                feedbackView(result: result)
-            }
-
-            // AI 参考释义
-            if let meaning = aiReferenceMeaning {
-                Text("参考释义：\(meaning)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal)
-            }
-
-            Spacer()
-
-            // 按钮区域
-            actionButtons
+            .padding(.vertical, 40)
         }
-        .padding()
+        .frame(minWidth: 440, maxWidth: 520, minHeight: 480, maxHeight: 560)
+    }
+
+    // MARK: - Header
+
+    private var headerView: some View {
+        HStack {
+            Text(mode == .learned ? "复习模式" : "错题本")
+                .font(.title2)
+                .fontWeight(.semibold)
+            Spacer()
+            NavigationLink(destination: ContentView()) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title2)
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(Color(NSColor.controlBackgroundColor))
     }
 
     // MARK: - Question View
 
     private var questionView: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 16) {
             if direction == .cnToEn {
-                // 看中文写英文：显示释义 + 词性
+                // 看中文写英文：显示释义 + 词性（大字体）
                 Text(word.meaning)
-                    .font(.system(size: 18))
+                    .font(.system(size: 28, weight: .medium))
                     .multilineTextAlignment(.center)
+                    .padding(.horizontal)
                 Text(word.pos)
-                    .font(.system(size: 14))
+                    .font(.system(size: 16))
                     .foregroundStyle(.blue)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 4)
                     .background(Color.blue.opacity(0.1))
                     .clipShape(Capsule())
             } else {
-                // 看英文写中文：显示单词
+                // 看英文写中文：显示单词（超大字体）
                 Text(word.word)
-                    .font(.system(size: 32, weight: .bold))
+                    .font(.system(size: 56, weight: .bold))
+                    .foregroundStyle(.primary)
                 Text(word.phonetic)
-                    .font(.system(size: 14))
+                    .font(.system(size: 18))
                     .foregroundStyle(.secondary)
             }
 
             // 如果显示答案，补充完整信息
             if state == .showingAnswer {
                 Divider()
-                    .padding(.vertical, 8)
-                VStack(spacing: 8) {
+                    .padding(.vertical, 16)
+                VStack(spacing: 12) {
                     Text(word.word)
                         .font(.title)
                     Text(word.phonetic)
@@ -333,82 +367,102 @@ struct QuizCard: View {
                 }
             }
         }
-        .padding(.horizontal)
     }
 
-    // MARK: - Input View
+    // MARK: - Captcha Input View (英文验证码式输入)
 
-    private var inputView: some View {
-        VStack(spacing: 8) {
-            if direction == .cnToEn {
-                // 英文输入：带下划线
-                HStack {
-                    TextField("输入英文单词", text: $userInput)
-                        .textFieldStyle(.plain)
-                        .font(.system(size: 20))
-                        
-
-                    // 下划线
-                    Rectangle()
-                        .fill(Color.secondary.opacity(0.3))
-                        .frame(height: 2)
-                        .frame(maxWidth: .infinity)
+    private var captchaInputView: some View {
+        VStack(spacing: 12) {
+            // 验证码格子
+            HStack(spacing: 8) {
+                ForEach(0..<max(word.word.count, userInput.count + 1), id: \.self) { index in
+                    captchaCell(index: index)
                 }
-                .padding()
+            }
+            .padding(.horizontal, 40)
+
+            // 隐藏的真实输入框（用于键盘输入）
+            TextField("", text: $userInput)
+                .opacity(0)
+                .frame(width: 1, height: 1)
+        }
+        .padding(.top, 20)
+    }
+
+    private func captchaCell(index: Int) -> some View {
+        let char = userInput.utf8CString[index] != 0
+            ? String(userInput.dropFirst(index).prefix(1))
+            : ""
+        let isEmpty = char.isEmpty
+
+        return VStack(spacing: 4) {
+            // 字符显示区
+            Text(char)
+                .font(.system(size: 32, weight: .medium, design: .monospaced))
+                .frame(width: 40, height: 48)
+                .foregroundStyle(isEmpty ? .secondary : .primary)
+
+            // 下划线
+            Rectangle()
+                .fill(Color.secondary.opacity(isEmpty ? 0.4 : 0.8))
+                .frame(height: 2)
+                .frame(maxWidth: .infinity)
+        }
+        .onTapGesture {
+            // 点击格子时可以聚焦到隐藏输入框（可选）
+        }
+    }
+
+    // MARK: - Chinese Input View
+
+    private var chineseInputView: some View {
+        VStack(spacing: 12) {
+            TextEditor(text: $userInput)
+                .font(.system(size: 20))
+                .frame(minHeight: 100)
+                .padding(12)
                 .background(Color(NSColor.controlBackgroundColor))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
-            } else {
-                // 中文输入：多行文本框
-                VStack {
-                    TextEditor(text: $userInput)
-                        .font(.body)
-                        .frame(minHeight: 80)
-                        .padding(8)
-                        .background(Color(NSColor.controlBackgroundColor))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                }
-                .padding(.horizontal)
-            }
         }
+        .padding(.horizontal, 40)
+        .padding(.top, 20)
     }
 
     // MARK: - Feedback View
 
     private func feedbackView(result: QuizResult) -> some View {
-        HStack {
+        VStack(spacing: 12) {
             Image(systemName: result == .correct ? "checkmark.circle.fill" : "xmark.circle.fill")
-                .font(.title3)
+                .font(.system(size: 48))
                 .foregroundStyle(result == .correct ? .green : .red)
             Text(result == .correct ? "回答正确！" : "回答错误")
-                .font(.headline)
-            Spacer()
+                .font(.title2)
+                .fontWeight(.semibold)
         }
-        .padding(.horizontal)
+        .padding(.vertical, 20)
     }
 
-    // MARK: - Action Buttons
+    // MARK: - Bottom Buttons
 
-    private var actionButtons: some View {
-        VStack(spacing: 12) {
+    private var bottomButtons: some View {
+        VStack(spacing: 16) {
             switch state {
             case .idle, .showingAnswer:
-                // 提交或不知道
-                HStack(spacing: 12) {
+                HStack(spacing: 16) {
                     if state == .showingAnswer {
                         Button("下一个") {
                             onNext()
                         }
                         .buttonStyle(.bordered)
+                        .controlSize(.large)
                     } else {
                         Button("不知道") {
                             onUnknown()
                         }
                         .buttonStyle(.bordered)
-                        .controlSize(.small)
+                        .controlSize(.large)
 
-                        Spacer()
-
-                        Button(state == .idle ? "提交" : "下一个") {
+                        Button(userInput.isEmpty ? "提交" : "下一个") {
                             if state == .idle {
                                 onSubmit()
                             } else {
@@ -420,41 +474,36 @@ struct QuizCard: View {
                         .disabled(userInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
                 }
-                .padding(.horizontal, 40)
 
             case .checking:
                 ProgressView()
-                    .padding()
 
             case .result:
-                // 根据结果和模式显示不同按钮
-                VStack(spacing: 12) {
+                VStack(spacing: 16) {
                     Button("下一个") {
                         onNext()
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
-                    .padding(.horizontal, 40)
+                    .frame(maxWidth: .infinity)
 
                     if mode == .mistakes {
-                        // 错题本：答对显示"移出错题本"
                         if result == .correct {
                             Button("移出错题本") {
                                 onRemoveFromMistakes()
                             }
                             .buttonStyle(.bordered)
                             .controlSize(.large)
-                            .padding(.horizontal, 40)
+                            .frame(maxWidth: .infinity)
                         }
                     } else {
-                        // 复习模式：答错显示"加入错题本"
                         if result == .incorrect {
                             Button("加入错题本") {
                                 onAddToMistakes()
                             }
                             .buttonStyle(.bordered)
                             .controlSize(.large)
-                            .padding(.horizontal, 40)
+                            .frame(maxWidth: .infinity)
                         }
                     }
                 }
@@ -463,6 +512,7 @@ struct QuizCard: View {
                 EmptyView()
             }
         }
+        .padding(.horizontal, 40)
     }
 }
 
