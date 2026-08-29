@@ -372,34 +372,50 @@ struct QuizCard: View {
     // MARK: - Captcha Input View (英文验证码式输入)
 
     private var captchaInputView: some View {
-        // 自定义输入区域 - 完全控制光标位置
-        VStack(spacing: 4) {
-            // 输入字符显示行 - 显示已输入的字母
-            HStack(spacing: 8) {
-                ForEach(0..<word.word.count, id: \.self) { index in
-                    let char = index < userInput.count 
-                        ? String(userInput[userInput.index(userInput.startIndex, offsetBy: index)])
-                        : ""
-                    Text(char)
-                        .font(.system(size: 32, weight: .medium, design: .monospaced))
-                        .frame(width: 40, height: 40)
-                        .foregroundStyle(.primary)
+        VStack(spacing: 0) {
+            // 透明 TextField - 放在最底层接收输入
+            TextField("", text: $userInput)
+                .textFieldStyle(.plain)
+                .font(.system(size: 32, design: .monospaced))
+                .foregroundStyle(.clear)
+                .frame(height: 1)
+                .onChange(of: userInput) { _, newValue in
+                    // 限制输入长度不超过单词长度
+                    if newValue.count > word.word.count {
+                        userInput = String(newValue.prefix(word.word.count))
+                    }
                 }
-            }
             
-            // 下划线行
-            HStack(spacing: 8) {
-                ForEach(0..<word.word.count, id: \.self) { index in
-                    Rectangle()
-                        .fill(Color.secondary.opacity(0.5))
-                        .frame(height: 2)
+            // 自定义显示层 - 覆盖在 TextField 上方
+            VStack(spacing: 4) {
+                // 字符显示行
+                HStack(spacing: 8) {
+                    ForEach(0..<word.word.count, id: \.self) { index in
+                        let char = index < userInput.count 
+                            ? String(userInput[userInput.index(userInput.startIndex, offsetBy: index)])
+                            : ""
+                        Text(char)
+                            .font(.system(size: 32, weight: .medium, design: .monospaced))
+                            .frame(width: 40, height: 40)
+                            .foregroundStyle(.primary)
+                    }
+                }
+                
+                // 下划线行
+                HStack(spacing: 8) {
+                    ForEach(0..<word.word.count, id: \.self) { index in
+                        Rectangle()
+                            .fill(Color.secondary.opacity(0.5))
+                            .frame(height: 2)
+                    }
                 }
             }
             .padding(.horizontal, 40)
         }
-        .padding(.top, 20)
+        .frame(height: 60)
+        .contentShape(Rectangle())
         .onTapGesture {
-            // 点击任意位置都可以输入
+            // 点击任何地方都能触发输入
         }
     }
 
