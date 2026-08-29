@@ -389,22 +389,21 @@ struct QuizCard: View {
                     underlineBox(index: index)
                 }
             }
+            
+            // 透明 TextField - 放在底部，大尺寸确保可点击
+            TextField("", text: $userInput)
+                .textFieldStyle(.plain)
+                .font(.system(size: 32, design: .monospaced))
+                .foregroundStyle(.clear)
+                .frame(height: 60)
+                .onChange(of: userInput) { _, newValue in
+                    // 限制输入长度不超过单词长度
+                    if newValue.count > word.word.count {
+                        userInput = String(newValue.prefix(word.word.count))
+                    }
+                }
         }
         .padding(.horizontal, 40)
-        
-        // 透明 TextField - 放在最底层，大尺寸确保可点击
-        TextField("", text: $userInput)
-            .textFieldStyle(.plain)
-            .font(.system(size: 32, design: .monospaced))
-            .foregroundStyle(.clear)
-            .frame(height: 60)
-            .onChange(of: userInput) { _, newValue in
-                // 限制输入长度不超过单词长度
-                if newValue.count > word.word.count {
-                    userInput = String(newValue.prefix(word.word.count))
-                }
-            }
-            .padding(.horizontal, 40)
     }
     
     /// 单个字符格子
