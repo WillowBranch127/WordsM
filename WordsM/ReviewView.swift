@@ -376,17 +376,20 @@ struct QuizCard: View {
 
     private var captchaInputView: some View {
         VStack(spacing: 12) {
-            // 验证码格子（可点击）
+            // 验证码格子
             HStack(spacing: 8) {
                 ForEach(0..<word.word.count, id: \.self) { index in
                     captchaCell(index: index)
-                        .onTapGesture {
-                            // 点击格子时聚焦到隐藏的 TextField
-                            showHiddenField = true
-                        }
                 }
             }
             .padding(.horizontal, 40)
+            
+            // 透明点击区域，覆盖格子下方
+            Color.clear
+                .frame(height: 80)
+                .onTapGesture {
+                    showHiddenField = true
+                }
             
             // 隐藏的 TextField（接收键盘输入）
             if showHiddenField {
@@ -401,11 +404,10 @@ struct QuizCard: View {
                             userInput = String(newValue.prefix(word.word.count))
                         }
                     }
-                    .onAppear {
-                        showHiddenField = true
-                    }
-                    .onDisappear {
-                        // 失去焦点时隐藏
+                    .onChange(of: showHiddenField) { _, isVisible in
+                        if !isVisible {
+                            userInput = ""
+                        }
                     }
             }
         }
