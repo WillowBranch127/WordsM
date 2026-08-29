@@ -223,6 +223,13 @@ struct ReviewView: View {
             }
         }
         .frame(minWidth: 440, maxWidth: 520, minHeight: 480, maxHeight: 560)
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                Text(mode == .learned ? "复习模式" : "错题本")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+            }
+        }
         .onAppear { viewModel.loadWordIfNeeded() }
     }
 }
@@ -247,12 +254,6 @@ struct QuizCard: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // 1. 顶栏标题区（与返回按钮高度对齐）
-            titleView
-                .frame(height: 36)
-                .padding(.top, 8)
-                .padding(.bottom, 12)
-
             // 2. 主体答题区
             VStack(spacing: 24) {
                 questionView
@@ -284,6 +285,13 @@ struct QuizCard: View {
             .padding(.bottom, 24)
         }
         .frame(minWidth: 440, maxWidth: 520, minHeight: 480, maxHeight: 560)
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                Text(mode == .learned ? "复习模式" : "错题本")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+            }
+        }
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 isTextFieldFocused = true
@@ -294,14 +302,6 @@ struct QuizCard: View {
                 isTextFieldFocused = true
             }
         }
-    }
-
-    // MARK: - Title
-
-    private var titleView: some View {
-        Text(mode == .learned ? "复习模式" : "错题本")
-            .font(.headline)
-            .fontWeight(.semibold)
     }
 
     // MARK: - Question View
