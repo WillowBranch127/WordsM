@@ -37,7 +37,7 @@ class SettingsViewModel: ObservableObject {
         fetchError = nil
 
         do {
-            let endpoint = URL(string: "\(baseURL.rstripSlash())/models")!
+            let endpoint = URL(string: "\(baseURL)/models")!
             var request = URLRequest(url: endpoint)
             request.httpMethod = "GET"
             request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
