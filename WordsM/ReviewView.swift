@@ -42,6 +42,7 @@ class ReviewViewModel: ObservableObject {
     @Published var userInput: String = ""
     @Published var result: QuizResult?
     @Published var aiReferenceMeaning: String?
+    @Published var mistakeRemovedAfterWrong: Bool = false
     @Published var isLoadingAI: Bool = false
 
     let mode: ReviewMode
@@ -100,6 +101,7 @@ class ReviewViewModel: ObservableObject {
         aiReferenceMeaning = nil
         isLoadingAI = false
         direction = [.cnToEn, .enToCn].randomElement() ?? .cnToEn
+        mistakeRemovedAfterWrong = false
     }
 
     // MARK: - Actions
@@ -243,6 +245,7 @@ struct ReviewView: View {
                     onNext: viewModel.nextWord,
                     onAddToMistakes: viewModel.addToMistakes,
                     onRemoveFromMistakes: viewModel.removeFromMistakes,
+                    mistakeRemovedAfterWrong: $viewModel.mistakeRemovedAfterWrong,
                     result: viewModel.result,
                     aiReferenceMeaning: viewModel.aiReferenceMeaning,
                     isLoadingAI: viewModel.isLoadingAI
@@ -270,6 +273,7 @@ struct QuizCard: View {
     var onNext: (() -> Void)?
     var onAddToMistakes: (() -> Void)?
     var onRemoveFromMistakes: (() -> Void)?
+    @Binding var mistakeRemovedAfterWrong: Bool
     let result: QuizResult?
     let aiReferenceMeaning: String?
     let isLoadingAI: Bool
@@ -536,8 +540,20 @@ struct QuizCard: View {
                         .buttonStyle(.bordered)
                         .controlSize(.large)
                         .frame(maxWidth: .infinity)
-                    } else if mode == .learned && result == .incorrect {
-                        EmptyView()
+                    } else if mode == .learned && result == .incorrect && !mistakeRemovedAfterWrong {
+                        // 复习模式下答错自动加入错题本，显示"AI判错？移出错题本"按钮
+                        Button("AI判错？移出错题本") {
+                            mistakeRemovedAfterWrong = true
+                            onRemoveFromMistakes?()
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                        .frame(maxWidth: .infinity)
+                    } else if mode == .learned && result == .incorrect && mistakeRemovedAfterWrong {
+                        Text("已移出")
+                            .font(.system(size: 16))
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity)
                     }
                 }
 
