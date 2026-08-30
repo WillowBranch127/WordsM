@@ -48,6 +48,16 @@ struct ContentView: View {
                 .padding(.bottom, 32)
             }
             .frame(minWidth: 440, maxWidth: 520, minHeight: 480, maxHeight: 560)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    NavigationLink {
+                        SettingsView()
+                            .environmentObject(manager)
+                    } label: {
+                        Image(systemName: "gearshape")
+                    }
+                }
+            }
         }
     }
 }
