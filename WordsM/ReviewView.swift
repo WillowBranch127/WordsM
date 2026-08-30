@@ -490,9 +490,9 @@ struct QuizCard: View {
                         .buttonStyle(.bordered)
                         .controlSize(.large)
                         .frame(maxWidth: .infinity)
-                    } else if mode != .mistakes && result == .incorrect {
-                        // 复习模式下答错自动加入错题本
-                        onAddToMistakes?()
+                    } else if mode == .learned && result == .incorrect {
+                        // 复习模式下答错自动加入错题本，无额外UI
+                        EmptyView()
                     }
                 }
 
