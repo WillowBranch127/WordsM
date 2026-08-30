@@ -96,7 +96,7 @@ class ReviewViewModel: ObservableObject {
     }
 
     func showUnknown() {
-        onAddToMistakes?()
+        addToMistakes()
         state = .showingAnswer
     }
 
@@ -508,7 +508,8 @@ struct QuizCard: View {
                         .controlSize(.large)
                         .frame(maxWidth: .infinity)
                     } else if mode == .learned && result == .incorrect {
-                        onAddToMistakes?()
+                        EmptyView()
+                            .onAppear { viewModel.addToMistakes() }
                     }
                 }
 
