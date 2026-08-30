@@ -236,11 +236,11 @@ struct QuizCard: View {
     let state: QuizState
     @Binding var userInput: String
     @FocusState private var isTextFieldFocused: Bool
-    let onSubmit: () -> Void
-    let onUnknown: () -> Void
-    let onNext: () -> Void
-    let onAddToMistakes: () -> Void
-    let onRemoveFromMistakes: () -> Void
+    var onSubmit: (() -> Void)?
+    var onUnknown: (() -> Void)?
+    var onNext: (() -> Void)?
+    var onAddToMistakes: (() -> Void)?
+    var onRemoveFromMistakes: (() -> Void)?
     let result: QuizResult?
     let aiReferenceMeaning: String?
     let isLoadingAI: Bool
