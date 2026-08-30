@@ -448,22 +448,22 @@ struct QuizCard: View {
                 HStack(spacing: 16) {
                     if state == .showingAnswer {
                         Button("下一个") {
-                            onNext()
+                            onNext?()
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.large)
                     } else {
                         Button("不知道") {
-                            onUnknown()
+                            onUnknown?()
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.large)
 
                         Button(userInput.isEmpty ? "提交" : "下一个") {
                             if state == .idle {
-                                onSubmit()
+                                onSubmit?()
                             } else {
-                                onNext()
+                                onNext?()
                             }
                         }
                         .buttonStyle(.borderedProminent)
@@ -478,7 +478,7 @@ struct QuizCard: View {
             case .result:
                 VStack(spacing: 16) {
                     Button("下一个") {
-                        onNext()
+                        onNext?()
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
@@ -487,7 +487,7 @@ struct QuizCard: View {
                     if mode == .mistakes {
                         if result == .correct {
                             Button("移出错题本") {
-                                onRemoveFromMistakes()
+                                onRemoveFromMistakes?()
                             }
                             .buttonStyle(.bordered)
                             .controlSize(.large)
@@ -496,7 +496,7 @@ struct QuizCard: View {
                     } else {
                         // 复习模式下答错自动加入错题本，无需手动确认
                         if result == .incorrect {
-                            onAddToMistakes()
+                            onAddToMistakes?()
                         }
                     }
                 }
