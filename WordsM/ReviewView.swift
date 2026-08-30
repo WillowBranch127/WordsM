@@ -58,6 +58,7 @@ class ReviewViewModel: ObservableObject {
     // MARK: - Shuffle State
     private var shuffleQueue: [Int] = []
     private var lastRoundOrder: [Int] = []
+    private var mistakeLastRoundOrder: [Int] = []
 
     // MARK: - Mistake Cycle State
     @Published var isMistakeCycleFinished: Bool = false
@@ -110,63 +111,48 @@ class ReviewViewModel: ObservableObject {
     }
 
     // MARK: - Mistake Mode Word Loading (Two-Round Cycle)
+    // mistakeRound 始终表示"当前正在进行的轮次"，不在建队时提前切换。
 
     private func loadMistakeNextWord() {
         guard !isMistakeCycleFinished else { return }
 
         let currentIDs = manager.mistakeIDs
-        guard !currentIDs.isEmpty else {
-            currentWord = nil
-            isMistakeCycleFinished = true
+
+        // 尝试从当前轮队列取出下一题（跳过已移出错的题本的单词）
+        while !mistakeShuffledIDs.isEmpty {
+            let candidateId = mistakeShuffledIDs.removeFirst()
+            guard currentIDs.contains(candidateId) else { continue }
+            currentWord = manager.words.first { $0.id == candidateId }
+            resetQuiz()
             return
         }
 
-        // 当前轮队列耗尽，切换到下一轮
-        if mistakeShuffledIDs.isEmpty {
-            if mistakeRound == .first {
-                // 第一轮：为每个单词独立随机分配方向
-                firstRoundDirections = [:]
-                for id in currentIDs {
-                    firstRoundDirections[id] = [.cnToEn, .enToCn].randomElement() ?? .cnToEn
-                }
-                repeat {
-                    mistakeShuffledIDs = currentIDs.sorted().shuffled()
-                } while mistakeShuffledIDs.count > 1 && mistakeShuffledIDs == lastRoundOrder
-                lastRoundOrder = mistakeShuffledIDs
-                mistakeRound = .second
-            } else {
-                // 第二轮：只保留仍在错题本中且第一轮有方向记录的单词，方向取反
-                let stillValid = currentIDs.filter { firstRoundDirections[$0] != nil }
-                guard !stillValid.isEmpty else {
-                    currentWord = nil
-                    isMistakeCycleFinished = true
-                    return
-                }
-                repeat {
-                    mistakeShuffledIDs = stillValid.shuffled()
-                } while mistakeShuffledIDs.count > 1 && mistakeShuffledIDs == lastRoundOrder
-                lastRoundOrder = mistakeShuffledIDs
-            }
-        }
-
-        // 出队并跳过已移出错的题本
-        while !mistakeShuffledIDs.isEmpty {
-            let candidateId = mistakeShuffledIDs.removeFirst()
-            if currentIDs.contains(candidateId) {
-                currentWord = manager.words.first { $0.id == candidateId }
-                resetQuiz()
-                return
-            }
-        }
-
-        // 队列耗尽
+        // 当前轮队列已耗尽，判断进入下一轮还是结束大循环
         if mistakeRound == .first {
-            // 第一轮耗尽，开始第二轮（mistakeRound 已在上面设为 .second）
-            loadMistakeNextWord()
+            startSecondMistakeRound(currentIDs: currentIDs)
         } else {
-            // 第二轮耗尽，大循环完成
-            isMistakeCycleFinished = true
+            finishMistakeCycle()
         }
+    }
+
+    // 建立第二轮队列：过滤掉中途移出的单词，方向全部取反
+    private func startSecondMistakeRound(currentIDs: Set<Int>) {
+        let stillValid = currentIDs.filter { firstRoundDirections[$0] != nil }
+        if stillValid.isEmpty {
+            finishMistakeCycle()
+            return
+        }
+        repeat {
+            mistakeShuffledIDs = stillValid.shuffled()
+        } while mistakeShuffledIDs.count > 1 && mistakeShuffledIDs == mistakeLastRoundOrder
+        mistakeLastRoundOrder = mistakeShuffledIDs
+        mistakeRound = .second
+        // 不立刻出题，交由 loadMistakeNextWord() 的 while 循环取第一题
+    }
+
+    // 两轮全部完成
+    private func finishMistakeCycle() {
+        isMistakeCycleFinished = true
         currentWord = nil
     }
 
@@ -237,7 +223,7 @@ class ReviewViewModel: ObservableObject {
     func removeFromMistakes() {
         guard let word = currentWord else { return }
         manager.removeFromMistakes(word.id)
-        nextWord()
+        // 注意：不在此处调用 nextWord()，由 UI 层统一调用 onRemoveFromMistakes + onNext
     }
 
     // MARK: - Answer Checking
@@ -651,6 +637,7 @@ struct QuizCard: View {
                     if mode == .mistakes && result == .correct {
                         Button("移出错题本") {
                             onRemoveFromMistakes?()
+                            onNext?()
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.large)
