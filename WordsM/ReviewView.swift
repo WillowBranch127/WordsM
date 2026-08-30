@@ -504,8 +504,8 @@ struct QuizCard: View {
                     Button("下一个") {
                         onNext?()
                     }
-                    .focused($isNextButtonFocused)
                     .buttonStyle(.borderedProminent)
+                    .focused($isNextButtonFocused)
                     .controlSize(.large)
                     .frame(maxWidth: .infinity)
 
