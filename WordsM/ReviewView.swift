@@ -120,34 +120,37 @@ class ReviewViewModel: ObservableObject {
     private func loadMistakeNextWord() {
         guard !isMistakeCycleFinished else { return }
 
-        let currentIDs = manager.mistakeIDs
-        guard !currentIDs.isEmpty else {
-            currentWord = nil
-            return
-        }
+        while true {
+            let currentIDs = manager.mistakeIDs
+            guard !currentIDs.isEmpty else {
+                currentWord = nil
+                return
+            }
 
-        // 先尝试从当前轮队列取下一题（自动跳过中途被移出的单词）
-        while !mistakeShuffledIDs.isEmpty {
-            let candidateId = mistakeShuffledIDs.removeFirst()
-            guard currentIDs.contains(candidateId) else { continue }
-            currentWord = manager.words.first { $0.id == candidateId }
-            resetQuiz()
-            return
-        }
+            // 1. 当前轮队列还有题：取出下一题（自动跳过中途被移出的单词）
+            while !mistakeShuffledIDs.isEmpty {
+                let candidateId = mistakeShuffledIDs.removeFirst()
+                guard currentIDs.contains(candidateId) else { continue }
+                currentWord = manager.words.first { $0.id == candidateId }
+                resetQuiz()
+                return
+            }
 
-        // 当前轮队列已空，按 phase 决定下一步
-        switch mistakePhase {
-        case .notStarted:
-            // 大循环尚未开始，建立第一轮
-            startFirstMistakeRound(currentIDs: currentIDs)
-        case .first:
-            // 第一轮已完成，进入第二轮
-            startSecondMistakeRound(currentIDs: currentIDs)
-        case .second:
-            // 第二轮已完成，大循环结束
-            finishMistakeCycle()
-        case .finished:
-            break
+            // 2. 当前轮队列已空，根据 phase 建立下一阶段
+            switch mistakePhase {
+            case .notStarted:
+                startFirstMistakeRound(currentIDs: currentIDs)
+            case .first:
+                startSecondMistakeRound(currentIDs: currentIDs)
+            case .second:
+                finishMistakeCycle()
+                return
+            case .finished:
+                return
+            }
+
+            // 3. startFirstMistakeRound / startSecondMistakeRound 已填充 mistakeShuffledIDs，
+            //    继续循环，从新队列取出第一题，不在此处 return。
         }
     }
 
