@@ -393,6 +393,7 @@ struct QuizCard: View {
                 .disableAutocorrection(true)
                 .frame(width: totalWidth, height: 50)
                 .contentShape(Rectangle())
+                .disabled(state == .result)
                 .onSubmit {
                     if state == .idle {
                         onSubmit?()
