@@ -526,6 +526,9 @@ struct QuizCard: View {
             case .result:
                 VStack(spacing: 16) {
                     Button("下一个") {
+                        if mistakeRemovedAfterWrong {
+                            onRemoveFromMistakes?()
+                        }
                         onNext?()
                     }
                     .buttonStyle(.borderedProminent)
