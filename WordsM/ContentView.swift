@@ -43,11 +43,11 @@ struct ContentView: View {
                         ActionButton(icon: "magnifyingglass", title: "探索模式", subtitle: "随机浏览新单词")
                     }
 
-                    CustomNavLink(destination: ReviewView(mode: .learned)) {
+                    CustomNavLink(destination: ReviewView(mode: .learned, manager: manager)) {
                         ActionButton(icon: "arrow.triangle.2.circlepath", title: "复习模式", subtitle: "主动回忆已学单词")
                     }
 
-                    CustomNavLink(destination: ReviewView(mode: .mistakes)) {
+                    CustomNavLink(destination: ReviewView(mode: .mistakes, manager: manager)) {
                         ActionButton(icon: "book.fill", title: "错题本", subtitle: "\(manager.mistakeIDs.count) 个待复习")
                     }
                 }

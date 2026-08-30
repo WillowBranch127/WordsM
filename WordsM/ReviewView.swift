@@ -202,13 +202,11 @@ class ReviewViewModel: ObservableObject {
 
 struct ReviewView: View {
     let mode: ReviewMode
-    @EnvironmentObject var manager: WordsManager
     @StateObject private var viewModel: ReviewViewModel
 
-    init(mode: ReviewMode) {
+    init(mode: ReviewMode, manager: WordsManager) {
         self.mode = mode
-        let wm = manager
-        _viewModel = StateObject(wrappedValue: ReviewViewModel(mode: mode, manager: wm))
+        _viewModel = StateObject(wrappedValue: ReviewViewModel(mode: mode, manager: manager))
     }
 
     var body: some View {
