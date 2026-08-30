@@ -493,7 +493,10 @@ struct QuizCard: View {
                         .frame(maxWidth: .infinity)
                     } else if mode != .mistakes && result == .incorrect {
                         // 复习模式下答错自动加入错题本，无需手动确认
-                        onAddToMistakes?()
+                        Group {
+                            EmptyView()
+                        }
+                            .onAppear { onAddToMistakes?() }
                     }
                 }
 
