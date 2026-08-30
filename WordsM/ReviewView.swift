@@ -509,7 +509,7 @@ struct QuizCard: View {
                         .frame(maxWidth: .infinity)
                     } else if mode == .learned && result == .incorrect {
                         EmptyView()
-                            .onAppear { viewModel.addToMistakes() }
+                            .onAppear { onAutoAddToMistakes?() }
                     }
                 }
 
