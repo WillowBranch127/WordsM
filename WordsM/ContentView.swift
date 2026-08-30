@@ -113,7 +113,7 @@ struct ActionButton: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
-        .background(buttonBgColor)
+        .background(Color.secondary.opacity(0.06))
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
@@ -123,13 +123,6 @@ struct ActionButton: View {
         .buttonStyle(.plain)
     }
 
-    private var buttonBgColor: Color {
-        #if os(iOS)
-        return Color(.controlBackgroundColor)
-        #else
-        return Color(NSColor.controlBackgroundColor)
-        #endif
-    }
 }
 
 // MARK: - Stat Chip
