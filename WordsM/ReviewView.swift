@@ -47,6 +47,10 @@ class ReviewViewModel: ObservableObject {
     let mode: ReviewMode
     let manager: WordsManager
 
+    // MARK: - Shuffle State
+    private var shuffleQueue: [Int] = []
+    private var lastWordId: Int?
+
     // MARK: - Init
 
     init(mode: ReviewMode, manager: WordsManager) {
@@ -69,11 +73,28 @@ class ReviewViewModel: ObservableObject {
         case .mistakes:
             ids = manager.mistakeIDs
         }
-        // 初始化洗牌队列（首次调用时）
-        if manager.shuffleQueue.isEmpty {
-            manager.setupShuffleQueue(for: ids)
+        // 队列为空时重新洗牌
+        if shuffleQueue.isEmpty {
+            shuffleQueue = ids.sorted().shuffled()
         }
-        currentWord = manager.nextShuffledWord(lastWordId: currentWord?.id, ids: ids)
+        // 在队列中找第一个不等于 lastWordId 的词
+        let count = shuffleQueue.count
+        for i in 0..<count {
+            let idx = i  // 顺序遍历即可，因为队列本身已打乱
+            let candidateId = shuffleQueue[idx]
+            if candidateId != lastWordId {
+                lastWordId = candidateId
+                // 把选中的移到末尾，保持剩余词的相对顺序
+                shuffleQueue.remove(at: idx)
+                shuffleQueue.append(candidateId)
+                currentWord = manager.words.first { $0.id == candidateId }
+                resetQuiz()
+                return
+            }
+        }
+        // 极端情况：所有词都相同（只有一个词），直接取
+        lastWordId = shuffleQueue[0]
+        currentWord = manager.words.first { $0.id == shuffleQueue[0] }
         resetQuiz()
     }
 

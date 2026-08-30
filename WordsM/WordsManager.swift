@@ -20,9 +20,6 @@ class WordsManager: ObservableObject {
     @Published var learnedIDs: Set<Int> = []
     @Published var mistakeIDs: Set<Int> = []
 
-    // MARK: - Shuffle Queue State
-    var shuffleQueue: [Int] = []
-    var shuffledIndex: Int = 0
 
     private let documentsURL: URL
     private let learnedURL: URL
@@ -129,43 +126,6 @@ class WordsManager: ObservableObject {
     func randomMistakeWord() -> Word? {
         guard let id = mistakeIDs.sorted().randomElement() else { return nil }
         return words.first { $0.id == id }
-    }
-
-// MARK: - Shuffle Queue (Round-Robin Random)
-
-    /// 为给定 ID 集合初始化洗牌队列
-    func setupShuffleQueue(for ids: Set<Int>) {
-        self.shuffleQueue = ids.sorted().shuffled()
-        self.shuffledIndex = 0
-    }
-
-    /// 获取下一个单词（保证不重复、不连续相同）
-    /// - Parameters:
-    ///   - lastWordId: 上一个单词的 ID（用于避免相邻重复）
-    ///   - ids: 当前轮的可用 ID 集合
-    /// - Returns: 下一个单词，若队列耗尽则返回 nil（会触发重新洗牌）
-    func nextShuffledWord(lastWordId: Int?, ids: Set<Int>) -> Word? {
-        // 如果队列为空或已耗尽，重新洗牌
-        if shuffleQueue.isEmpty || shuffledIndex >= shuffleQueue.count {
-            shuffleQueue = ids.sorted().shuffled()
-            shuffledIndex = 0
-        }
-
-        // 找第一个不等于 lastWordId 的词
-        let startIdx = shuffledIndex
-        let count = shuffleQueue.count
-        for i in 0..<count {
-            let idx = (startIdx + i) % count
-            let candidateId = shuffleQueue[idx]
-            if candidateId != (lastWordId ?? -1) {
-                shuffledIndex = (idx + 1) % count
-                return words.first { $0.id == candidateId }
-            }
-        }
-
-        // 所有词都和 lastWordId 相同（只有一种词的情况），直接返回
-        shuffledIndex = (shuffledIndex + 1) % count
-        return words.first { $0.id == shuffleQueue[shuffledIndex] }
     }
 
     private func save(_ array: [Int], to url: URL) {
