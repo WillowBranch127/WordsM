@@ -214,6 +214,7 @@ struct ReviewView: View {
                     onNext: viewModel.nextWord,
                     onAddToMistakes: viewModel.addToMistakes,
                     onRemoveFromMistakes: viewModel.removeFromMistakes,
+                    onAutoAddToMistakes: viewModel.addToMistakes,
                     result: viewModel.result,
                     aiReferenceMeaning: viewModel.aiReferenceMeaning,
                     isLoadingAI: viewModel.isLoadingAI
@@ -241,6 +242,7 @@ struct QuizCard: View {
     var onNext: (() -> Void)?
     var onAddToMistakes: (() -> Void)?
     var onRemoveFromMistakes: (() -> Void)?
+    var onAutoAddToMistakes: (() -> Void)?
     let result: QuizResult?
     let aiReferenceMeaning: String?
     let isLoadingAI: Bool
