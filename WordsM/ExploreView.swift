@@ -54,13 +54,6 @@ struct ExploreView: View {
             }
         }
         .padding(.bottom, 24)
-        .toolbar {
-            ToolbarItem(placement: .automatic) {
-                NavigationLink(destination: ContentView()) {
-                    Label("退出", systemImage: "xmark.circle")
-                }
-            }
-        }
         .onAppear { loadNext() }
     }
 
