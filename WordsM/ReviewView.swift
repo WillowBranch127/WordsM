@@ -62,15 +62,18 @@ class ReviewViewModel: ObservableObject {
     // MARK: - Word Loading
 
     func loadNextWord() {
-        let word: Word?
+        let ids: Set<Int>
         switch mode {
         case .learned:
-            word = manager.randomLearnedWord()
+            ids = manager.learnedIDs
         case .mistakes:
-            word = manager.randomMistakeWord()
+            ids = manager.mistakeIDs
         }
-
-        currentWord = word
+        // 初始化洗牌队列（首次调用时）
+        if manager.shuffleQueue.isEmpty {
+            manager.setupShuffleQueue(for: ids)
+        }
+        currentWord = manager.nextShuffledWord(lastWordId: currentWord?.id, ids: ids)
         resetQuiz()
     }
 
