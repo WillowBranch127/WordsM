@@ -129,6 +129,41 @@ WordsM/
 └── words.csv              # 原始词库（CSV 格式，UTF-8 BOM）
 ```
 
+
+#### ReviewView 架构
+- `ReviewMode`：`learned` / `mistakes`，通过 `init(mode:manager:)` 传入
+- `QuizDirection`：`cnToEn` / `enToCn`，每次换题随机分配
+- `QuizState`：`idle` → `showingAnswer` → `checking` → `result` → `idle`（循环）
+- `ReviewViewModel`：`ObservableObject`，持有答题状态和数据操作，**所有错题操作在 ViewModel 层统一处理**
+- `QuizCard`：纯展示组件，通过闭包接收父层回调，不持有数据
+
+#### 答题流程（汉译英 cnToEn）
+1. 显示中文释义 + 词性（大字体）
+2. 验证码式格子输入框（每格对应字母，自定义蓝色光标和下划线）
+3. 用户输入后按 Enter 或点"提交" → `state = .checking`（显示 ProgressView 0.5s）
+4. 精确字符串比较（case-insensitive）判断对错
+5. 答错 → `manager.addToMistakes(word.id)` 自动加入错题本 → `state = .result`
+6. 显示正确/错误反馈 + "下一个"按钮（支持 Enter 继续）
+
+#### 答题流程（英译汉 enToCn）
+1. 显示英文单词（超大字体）+ 音标
+2. 单行居中 TextEditor，无框样式，height 72pt，placeholder "输入中文释义…"
+3. 用户输入后按 Enter 或点"提交" → `state = .checking`
+4. 调用 AI（OpenAI 兼容格式）判断中文释义合理性：
+   - System prompt：明确判定标准和规则（多义词、口语化、义项顺序等）
+   - User prompt：结构化输入 word.word / word.pos / word.meaning / userInput
+   - 响应解析：优先 JSONDecoder，降级扫描 isReasonable 字段容错
+5. fallback（未配置 AI / 网络失败）：关键词交集匹配（输入词与释义分段后取交集）
+6. 答错 → `manager.addToMistakes(word.id)` 自动加入错题本 → `state = .result`
+
+#### 不知道按钮
+- 调 `manager.addToMistakes(word.id)`（不跳题）
+- `state = .showingAnswer`，显示完整单词信息
+- 出现"下一个"按钮，用户手动点击继续
+
+#### 错题本模式区别
+- 答对时显示"移出错题本"按钮（仅手动点击才删除，不自动移除）
+- 答错时不显示"加入错题本"按钮（已在错题本中），自动确保 ID 存在（幂等）
 ### WordsManager
 - `ObservableObject`，由 `@StateObject` 在 App 入口创建并注入为 `environmentObject`
 - `init()` 时从 Bundle 加载词库，从 Documents 目录加载 learned/mistakes JSON
