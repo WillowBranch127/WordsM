@@ -465,6 +465,18 @@ struct QuizCard: View {
                 isTextFieldFocused = true
             }
         }
+        .onChange(of: direction) { _, _ in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                isTextFieldFocused = true
+            }
+        }
+        .onChange(of: state) { _, newValue in
+            if newValue == .idle {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    isTextFieldFocused = true
+                }
+            }
+        }
     }
 
     // MARK: - Question View
@@ -843,7 +855,8 @@ struct AIHelper {
 只返回 JSON，格式为：{"isReasonable": true/false, "referenceMeaning": "<word的原始释义>"}
 """],
             ],
-            "temperature": 0.1
+            "temperature": 0.1,
+            "thinking": false
         ]
 
         var request = URLRequest(url: endpoint)
