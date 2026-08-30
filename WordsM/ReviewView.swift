@@ -33,11 +33,15 @@ enum QuizResult {
     case skipped
 }
 
-// MARK: - Mistake Cycle Round
 
-enum MistakeCycleRound {
+
+// MARK: - Mistake Cycle Phase
+// 表示大循环所处的阶段：未开始 / 第一轮 / 第二轮 / 已完成
+private enum MistakeCyclePhase {
+    case notStarted
     case first
     case second
+    case finished
 }
 
 // MARK: - Review View Model
@@ -62,7 +66,7 @@ class ReviewViewModel: ObservableObject {
 
     // MARK: - Mistake Cycle State
     @Published var isMistakeCycleFinished: Bool = false
-    private var mistakeRound: MistakeCycleRound = .first
+    private var mistakePhase: MistakeCyclePhase = .notStarted
     private var firstRoundDirections: [Int: QuizDirection] = [:]
     private var mistakeShuffledIDs: [Int] = []
 
@@ -111,14 +115,18 @@ class ReviewViewModel: ObservableObject {
     }
 
     // MARK: - Mistake Mode Word Loading (Two-Round Cycle)
-    // mistakeRound 始终表示"当前正在进行的轮次"，不在建队时提前切换。
+    // mistakePhase 精确表示当前所在阶段，不会出现"第一轮未完成却跳到第二轮"的错误。
 
     private func loadMistakeNextWord() {
         guard !isMistakeCycleFinished else { return }
 
         let currentIDs = manager.mistakeIDs
+        guard !currentIDs.isEmpty else {
+            currentWord = nil
+            return
+        }
 
-        // 尝试从当前轮队列取出下一题（跳过已移出错的题本的单词）
+        // 先尝试从当前轮队列取下一题（自动跳过中途被移出的单词）
         while !mistakeShuffledIDs.isEmpty {
             let candidateId = mistakeShuffledIDs.removeFirst()
             guard currentIDs.contains(candidateId) else { continue }
@@ -127,15 +135,36 @@ class ReviewViewModel: ObservableObject {
             return
         }
 
-        // 当前轮队列已耗尽，判断进入下一轮还是结束大循环
-        if mistakeRound == .first {
+        // 当前轮队列已空，按 phase 决定下一步
+        switch mistakePhase {
+        case .notStarted:
+            // 大循环尚未开始，建立第一轮
+            startFirstMistakeRound(currentIDs: currentIDs)
+        case .first:
+            // 第一轮已完成，进入第二轮
             startSecondMistakeRound(currentIDs: currentIDs)
-        } else {
+        case .second:
+            // 第二轮已完成，大循环结束
             finishMistakeCycle()
+        case .finished:
+            break
         }
     }
 
-    // 建立第二轮队列：过滤掉中途移出的单词，方向全部取反
+    // 建立第一轮：随机方向 + 随机顺序
+    private func startFirstMistakeRound(currentIDs: Set<Int>) {
+        firstRoundDirections = [:]
+        for id in currentIDs {
+            firstRoundDirections[id] = [.cnToEn, .enToCn].randomElement() ?? .cnToEn
+        }
+        repeat {
+            mistakeShuffledIDs = currentIDs.sorted().shuffled()
+        } while mistakeShuffledIDs.count > 1 && mistakeShuffledIDs == mistakeLastRoundOrder
+        mistakeLastRoundOrder = mistakeShuffledIDs
+        mistakePhase = .first
+    }
+
+    // 建立第二轮：保留第一轮方向记录（取反），过滤中途移出的单词
     private func startSecondMistakeRound(currentIDs: Set<Int>) {
         let stillValid = currentIDs.filter { firstRoundDirections[$0] != nil }
         if stillValid.isEmpty {
@@ -146,24 +175,26 @@ class ReviewViewModel: ObservableObject {
             mistakeShuffledIDs = stillValid.shuffled()
         } while mistakeShuffledIDs.count > 1 && mistakeShuffledIDs == mistakeLastRoundOrder
         mistakeLastRoundOrder = mistakeShuffledIDs
-        mistakeRound = .second
-        // 不立刻出题，交由 loadMistakeNextWord() 的 while 循环取第一题
+        mistakePhase = .second
     }
 
     // 两轮全部完成
     private func finishMistakeCycle() {
+        mistakePhase = .finished
         isMistakeCycleFinished = true
         currentWord = nil
     }
 
-    // MARK: - Reset Mistake Cycle
+    // MARK: - Restart Cycle
 
-    func resetMistakeCycle() {
-        mistakeRound = .first
+    func restartMistakeCycle() {
+        mistakePhase = .notStarted
         firstRoundDirections = [:]
         mistakeShuffledIDs = []
+        mistakeLastRoundOrder = []
         isMistakeCycleFinished = false
         currentWord = nil
+        loadMistakeNextWord()
     }
 
     // MARK: - Opposite Direction
@@ -184,7 +215,7 @@ class ReviewViewModel: ObservableObject {
         if mode == .mistakes && currentWord != nil {
             // 错题本模式：方向由第一轮记录决定，第二轮取反
             if let savedDir = firstRoundDirections[currentWord!.id] {
-                direction = mistakeRound == .first ? savedDir : oppositeDirection(savedDir)
+                direction = mistakePhase == .first ? savedDir : oppositeDirection(savedDir)
             }
         } else {
             // 复习模式：随机分配方向
@@ -322,7 +353,7 @@ struct ReviewView: View {
         VStack(spacing: 0) {
             // 错题本大循环完成页面
             if mode == .mistakes && viewModel.isMistakeCycleFinished {
-                MistakeCycleEndView(onRetry: viewModel.resetMistakeCycle, onExit: dismissAction)
+                MistakeCycleEndView(onRetry: viewModel.restartMistakeCycle, onExit: dismissAction)
             }
             // 答题区
             else if let word = viewModel.currentWord {
