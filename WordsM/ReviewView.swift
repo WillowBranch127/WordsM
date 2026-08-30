@@ -686,6 +686,5 @@ extension String {
 // MARK: - Preview
 
 #Preview {
-    ReviewView(mode: .learned)
-        .environmentObject(WordsManager())
+    ReviewView(mode: .learned, manager: WordsManager())
 }
