@@ -73,9 +73,20 @@ class ReviewViewModel: ObservableObject {
         case .mistakes:
             ids = manager.mistakeIDs
         }
-        // 队列为空时重新洗牌
+        // 队列为空时重新洗牌（用 lastWordId 增加熵，打破重复顺序）
         if shuffleQueue.isEmpty {
-            shuffleQueue = ids.sorted().shuffled()
+            let sortedIds = ids.sorted()
+            // 如果 lastWordId 存在，将其移到末尾再打乱，增加随机性
+            if let lid = lastWordId, sortedIds.contains(lid) {
+                var idsWithSeed = sortedIds
+                if let idx = idsWithSeed.firstIndex(of: lid) {
+                    idsWithSeed.remove(at: idx)
+                    idsWithSeed.append(lid)
+                }
+                shuffleQueue = idsWithSeed.shuffled()
+            } else {
+                shuffleQueue = sortedIds.shuffled()
+            }
         }
         // 在队列中找第一个不等于 lastWordId 的词
         let count = shuffleQueue.count
@@ -92,7 +103,7 @@ class ReviewViewModel: ObservableObject {
                 return
             }
         }
-        // 极端情况：所有词都相同（只有一个词），直接取
+        // 极端情况：队列只剩一个词，直接取（shuffleQueue 会自动重新打乱下次）
         lastWordId = shuffleQueue[0]
         currentWord = manager.words.first { $0.id == shuffleQueue[0] }
         resetQuiz()
