@@ -235,7 +235,6 @@ struct QuizCard: View {
     let state: QuizState
     @Binding var userInput: String
     @FocusState private var isTextFieldFocused: Bool
-    @FocusState private var isNextButtonFocused: Bool
     var onSubmit: (() -> Void)?
     var onUnknown: (() -> Void)?
     var onNext: (() -> Void)?
@@ -385,11 +384,6 @@ struct QuizCard: View {
             // 2. 顶层：完全覆盖的透明 TextField 接收输入
             TextField("", text: $userInput)
                 .focused($isTextFieldFocused)
-                .onChange(of: state) { _, newState in
-                    if newState == .result {
-                        isNextButtonFocused = true
-                    }
-                }
                 .textFieldStyle(.plain)
                 .foregroundStyle(.clear) 
                 .tint(.clear)
@@ -430,11 +424,6 @@ struct QuizCard: View {
                 .multilineTextAlignment(.center)
                 .focused($isTextFieldFocused)
                 .disabled(state == .result)
-                .onChange(of: state) { _, newState in
-                    if newState == .result {
-                        isNextButtonFocused = true
-                    }
-                }
                 .onSubmit {
                     if state == .idle {
                         onSubmit?()
@@ -505,7 +494,7 @@ struct QuizCard: View {
                         onNext?()
                     }
                     .buttonStyle(.borderedProminent)
-                    .focused($isNextButtonFocused)
+                    .keyboardShortcut(.defaultAction)
                     .controlSize(.large)
                     .frame(maxWidth: .infinity)
 
