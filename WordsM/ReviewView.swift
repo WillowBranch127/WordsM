@@ -131,6 +131,9 @@ class ReviewViewModel: ObservableObject {
         let isCorrect = userInput.trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased() == word.word.lowercased()
 
+        if !isCorrect {
+            manager.addToMistakes(word.id)
+        }
         result = isCorrect ? .correct : .incorrect
         state = .result
     }
@@ -153,6 +156,9 @@ class ReviewViewModel: ObservableObject {
             // 未配置 AI，关键词交集 fallback
             let normalized = userInput.trimmingCharacters(in: .whitespacesAndNewlines)
             let isReasonable = !normalized.isEmpty && normalized._keywordOverlap(wordMeaning: word.meaning)
+            if !isReasonable {
+                manager.addToMistakes(word.id)
+            }
             result = isReasonable ? .correct : .incorrect
             state = .result
             isLoadingAI = false
@@ -169,6 +175,9 @@ class ReviewViewModel: ObservableObject {
             )
             print("[WordsM AI] word=\(word.word) input=\(userInput) isReasonable=\(response.isReasonable) ref=\(response.referenceMeaning)")
             aiReferenceMeaning = response.referenceMeaning
+            if !response.isReasonable {
+                manager.addToMistakes(word.id)
+            }
             result = response.isReasonable ? .correct : .incorrect
             state = .result
         } catch {
@@ -177,6 +186,9 @@ class ReviewViewModel: ObservableObject {
             let normalized = userInput.trimmingCharacters(in: .whitespacesAndNewlines)
             let isReasonable = !normalized.isEmpty && normalized._keywordOverlap(wordMeaning: word.meaning)
             print("[WordsM AI] fallback(network error) word=\(word.word) input=\(userInput) isReasonable=\(isReasonable)")
+            if !isReasonable {
+                manager.addToMistakes(word.id)
+            }
             result = isReasonable ? .correct : .incorrect
             state = .result
         }
@@ -214,7 +226,6 @@ struct ReviewView: View {
                     onNext: viewModel.nextWord,
                     onAddToMistakes: viewModel.addToMistakes,
                     onRemoveFromMistakes: viewModel.removeFromMistakes,
-                    onAutoAddToMistakes: viewModel.addToMistakes,
                     result: viewModel.result,
                     aiReferenceMeaning: viewModel.aiReferenceMeaning,
                     isLoadingAI: viewModel.isLoadingAI
@@ -242,7 +253,6 @@ struct QuizCard: View {
     var onNext: (() -> Void)?
     var onAddToMistakes: (() -> Void)?
     var onRemoveFromMistakes: (() -> Void)?
-    var onAutoAddToMistakes: (() -> Void)?
     let result: QuizResult?
     let aiReferenceMeaning: String?
     let isLoadingAI: Bool
@@ -511,7 +521,6 @@ struct QuizCard: View {
                         .frame(maxWidth: .infinity)
                     } else if mode == .learned && result == .incorrect {
                         EmptyView()
-                            .onAppear { onAutoAddToMistakes?() }
                     }
                 }
 
