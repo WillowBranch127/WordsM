@@ -48,6 +48,7 @@ struct ContentView: View {
                 .padding(.bottom, 32)
             }
             .frame(minWidth: 440, maxWidth: 520, minHeight: 480, maxHeight: 560)
+#if os(iOS)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     NavigationLink {
@@ -58,6 +59,7 @@ struct ContentView: View {
                     }
                 }
             }
+#endif
         }
     }
 }
@@ -111,7 +113,15 @@ struct ActionButton: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
-        .background(Color(UIColor.systemBackground))
+#if os(iOS)
+            .background(#if os(iOS)
+            Color(.controlBackgroundColor)
+        #else
+            Color(NSColor.controlBackgroundColor)
+        #endif)
+#else
+            .background(Color(NSColor.controlBackgroundColor))
+#endif
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
