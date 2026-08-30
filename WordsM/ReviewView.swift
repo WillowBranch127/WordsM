@@ -391,7 +391,14 @@ struct QuizCard: View {
                 .opacity(0.01) 
                 .disableAutocorrection(true)
                 .frame(width: totalWidth, height: 50)
-                .contentShape(Rectangle()) 
+                .contentShape(Rectangle())
+                .onSubmit {
+                    if state == .idle {
+                        onSubmit?()
+                    } else {
+                        onNext?()
+                    }
+                }
                 .onChange(of: userInput) { _, newValue in
                     if newValue.count > charCount {
                         userInput = String(newValue.prefix(charCount))
@@ -417,6 +424,13 @@ struct QuizCard: View {
                 .multilineTextAlignment(.center)
                 .focused($isTextFieldFocused)
                 .disabled(state == .result)
+                .onSubmit {
+                    if state == .idle {
+                        onSubmit?()
+                    } else {
+                        onNext?()
+                    }
+                }
         }
         .frame(maxWidth: .infinity)
         .frame(height: 72)
