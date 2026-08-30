@@ -3,7 +3,14 @@
 ## 项目概述
 
 **WordsM** 是一个用 Swift/SwiftUI 开发的辅助背单词 iOS/macOS app。
-目前主界面、数据层、设置界面已实现，探索模式入口已就绪。
+支持 macOS（固定窗口）和 iOS（iPhone/iPad）双端运行。
+目前主界面、数据层、设置界面、探索模式、复习模式、错题本模式均已实现。
+
+### 多平台架构
+- **macOS Target**：`WordsM/` 目录下的 SwiftUI 文件 + `WordsMApp.swift`（@main）
+- **iOS Target**：`WordsM iOS/` 目录下的 iOS 专属文件 + `iOSApp.swift`（@main）
+- **共享代码**：`ContentView.swift`、`ReviewView.swift`、`ExploreView.swift`、`SettingsView.swift`、`WordsManager.swift` 通过 Xcode 的 file system synchronized groups 同时加入两个 target
+- **平台区分**：使用 `#if os(iOS)` / `#if !os(iOS)` 条件编译适配两端差异
 
 ---
 
@@ -68,15 +75,68 @@
 
 ---
 
-### 错题本模式
+### 错题本模式（两轮大循环）
 
-- 从 `mistakes.json` 中随机抽词
-- 出题逻辑与复习模式完全一致
-- 区别：
-  - **不显示"加入错题本"按钮**（已在错题本中）
-  - 用户**答对**时，除"下一个"外，额外显示**"移出错题本"**按钮
-  - 只有用户点击"移出错题本"，才将该单词 ID 从 `mistakes.json` 中删除
-  - 答错时仍只显示"下一个"
+错题本采用**"两轮为一个大循环"**的机制，与复习模式完全不同。
+
+#### 状态机设计
+
+使用 `MistakeCyclePhase` 枚举精确表示当前阶段：
+```swift
+private enum MistakeCyclePhase {
+    case notStarted   // 新大循环尚未开始第一轮
+    case first        // 正在进行第一轮
+    case second       // 正在进行第二轮
+    case finished     // 两轮全部完成
+}
+```
+
+`mistakePhase` 始终表示"当前正在进行的轮次"，不在建队时提前切换。
+
+#### 核心流程
+
+```
+进入错题本
+    ↓
+mistakePhase = .notStarted
+    ↓
+建立第一轮：
+  - 读取当前 manager.mistakeIDs
+  - 为每个 ID 独立随机分配方向 → firstRoundDirections[id] = direction
+  - 洗牌得到顺序 → mistakeShuffledIDs
+  - mistakePhase = .first
+    ↓
+逐题答题（方向来自 firstRoundDirections）
+    ↓
+第一轮队列耗尽（mistakeShuffledIDs 空）
+    ↓
+建立第二轮：
+  - 重新读取当前 manager.mistakeIDs（过滤中途移出的单词）
+  - 只保留 firstRoundDirections 中有记录的 ID
+  - 洗牌得到新顺序
+  - mistakePhase = .second
+    ↓
+逐题答题（方向 = oppositeDirection(firstRoundDirections[id])）
+    ↓
+第二轮队列耗尽
+    ↓
+mistakePhase = .finished
+isMistakeCycleFinished = true
+    ↓
+显示完成页面："你已刷完一次错题本啦！"
+    ├── 再来一轮 → restartMistakeCycle() → 新建大循环
+    └── 退出 → dismiss() → 返回主界面
+```
+
+#### 关键规则
+
+1. **第一轮每个单词独立随机方向**：A→cnToEn, B→enToCn, C→cnToEn...
+2. **第二轮方向强制取反**：A→enToCn, B→cnToEn, C→enToCn...
+3. **两轮顺序独立随机**：第一轮可能是 [A,B,C,D]，第二轮可能是 [D,A,C,B]
+4. **中途移出处理**：用户点击"移出错题本"后，该单词从后续出题队列中剔除，但不影响其他单词的方向记录
+5. **方向记录贯穿整个大循环**：`firstRoundDirections` 在大循环期间保持不变，即使单词被移出也不重新随机
+6. **完成判断**：只有两轮都完成后才显示完成页面，不允许提前结束
+7. **重来一轮**：完全重置状态（mistakePhase=.notStarted, firstRoundDirections=[]），重新随机方向和顺序
 
 ---
 
@@ -129,15 +189,22 @@ python3 WordsM/convert_csv_to_json.py
 
 ### 文件结构
 ```
-WordsM/
-├── WordsMApp.swift        # @main 入口，挂载 WordsManager 到 environmentObject
-├── ContentView.swift      # 主界面：标题 + 三按钮（探索/复习/错题本）+ 底部统计
-├── WordsManager.swift     # 数据层：加载词库，读写 learned/mistakes，提供随机抽词方法
-├── ExploreView.swift      # 探索模式：展示单词 + "记住了，下一个"按钮
-├── ReviewView.swift       # 复习模式 + 错题本：双模式、双方向完整实现，含 AI 语义判断
-├── SettingsView.swift     # 设置界面：AI Base URL + API Key，onChange 自动保存
-├── words.json             # 内置词库（3686 词）
-└── words.csv              # 原始词库（CSV 格式，UTF-8 BOM）
+WordsM/                          # macOS + iOS 共享代码
+├── WordsMApp.swift              # macOS @main 入口，含 Settings Scene（⌘,）
+├── iOSApp.swift                 # iOS @main 入口
+├── ContentView.swift            # 主界面：标题 + 三按钮 + 底部统计 + iOS 齿轮按钮
+├── WordsManager.swift           # 数据层：加载词库，读写 learned/mistakes
+├── ExploreView.swift            # 探索模式：展示单词 + "记住了，下一个"
+├── ReviewView.swift             # 复习模式 + 错题本：两轮大循环 + AI 判断
+├── SettingsView.swift           # 设置界面：AI 配置，onChange 自动保存
+├── words.json                   # 内置词库（3686 词，iOS 需手动加入 Bundle）
+└── words.csv                    # 原始词库（CSV 格式，UTF-8 BOM）
+
+WordsM iOS/                      # iOS 专属文件
+├── AppDelegate.swift            # UIApplicationDelegate（无 @main）
+├── SceneDelegate.swift          # UIWindowScene 代理（简化版）
+├── Info.plist                   # iOS 应用配置（纯 SwiftUI，无 storyboard）
+└── Assets.xcassets/             # iOS 资源
 ```
 
 
@@ -188,9 +255,15 @@ WordsM/
 - AI 配置存储于 `UserDefaults`，键名固定为 `wordsM_baseURL` 和 `wordsM_apiKey`
 
 ### 窗口规范
-- 主窗口使用 `.windowStyle(.hiddenTitleBar)` 隐藏系统标题栏
-- `.windowToolbarStyle(.unified)` 启用统一工具栏样式
-- 主界面固定尺寸：min 440×480，max 520×560
+- **macOS**：主窗口使用 `.windowStyle(.hiddenTitleBar)` 隐藏系统标题栏，`.windowToolbarStyle(.unified)` 启用统一工具栏样式，固定尺寸：min 440×480，max 520×560
+- **iOS**：全屏自适应，无固定尺寸约束；主界面右上角齿轮按钮进入设置页；探索/复习/错题本均通过 NavigationStack 导航
+
+### iOS 适配要点
+- 所有固定 `frame(minWidth:maxWidth:minHeight:maxHeight:)` 用 `#if !os(iOS)` 保护
+- 字体大小使用 `.title`、`.title2`、`.body` 等语义化字体，配合 `lineLimit` 和 `minimumScaleFactor` 防止溢出
+- 验证码输入框格子宽度根据屏幕宽度动态计算（`UIScreen.main.bounds.width`）
+- 按钮宽度使用 `frame(maxWidth: .infinity)` 全宽适配
+- 平台特定代码使用 `#if os(iOS)` / `#if !os(iOS)` 条件编译，避免在 modifier 链中嵌套 `#if`
 
 ---
 
@@ -198,28 +271,32 @@ WordsM/
 
 - **严格遵守 AGENTS.md**：实现功能时严格遵循本文档描述，禁止自行添加、修改或扩展功能范围；如需变更，先更新 AGENTS.md 并获得确认后再开发。
 - **语言**：Swift / SwiftUI
-- **平台**：iOS / macOS（统一 UI，当前优先 macOS）
+- **平台**：iOS / macOS（双端适配，代码共用）
 - **Swift 版本**：6.0（项目 pbxproj 中 SWIFT_VERSION = 6.0）
 - **数据存储**：文件系统（JSON），非 Core Data
 - **分支前缀**：`codex/`
+- **平台适配**：iOS 专属代码用 `#if os(iOS)` 包裹，macOS 专属用 `#if !os(iOS)`；避免在 SwiftUI modifier 链中嵌套 `#if`，优先使用 computed property
+- **状态机设计**：错题本两轮循环使用 `MistakeCyclePhase` 枚举，确保 `mistakePhase` 始终表示"当前阶段"而非"下一阶段"
 
 ---
 
 ## 开发进度
 
 - [x] 数据层：`WordsManager`（词库加载、learned/mistakes 读写、随机抽词、addToMistakes/removeFromMistakes）
-- [x] 主界面：三按钮布局 + 底部统计（已学/错题数量）
-- [x] 探索模式：随机展示未学单词，"记住了，下一个"功能完整
+- [x] 主界面：三按钮布局 + 底部统计（已学/错题数量），iOS 右上角齿轮按钮
+- [x] 探索模式：随机展示未学单词，"记住了，下一个"功能完整，iOS 响应式字体
 - [x] 设置界面：AI 配置（Base URL、API Key、模型选择），onChange 自动保存，支持从 API 获取模型列表
 - [x] 复习模式（汉译英）：完整实现，验证码式格子输入框，自定义蓝色光标，自动获取焦点
 - [x] 复习模式（英译汉）：完整实现，单行居中 TextEditor，无框样式，placeholder 提示
-- [x] 错题本模式：完整实现，答对时显示"移出错题本"手动按钮
-- [x] 方向随机化：每次换题随机分配 cnToEn / enToCn
+- [x] 错题本模式：两轮大循环机制，第一轮随机方向+记录，第二轮强制取反，完成页面
+- [x] 方向随机化：复习模式每次换题随机，错题本第一轮每个单词独立随机
 - [x] AI 语义判断：OpenAI 兼容格式，结构化 prompt，容错解析（处理截断响应），fallback 关键词交集
 - [x] 答题逻辑：答错自动加入错题本（ViewModel 层处理），"不知道"只加错题本不切题
 - [x] 键盘支持：两个方向均支持 Enter 提交/下一步，结果页"下一个"按钮绑定 defaultAction
 - [x] 数据同步：所有视图共享同一个 WordsManager 实例（init 参数注入，非单例）
-- [x] 随机选词：洗牌式一轮一消耗算法，相邻不重复、轮间顺序不同（ReviewViewModel 本地维护 shuffleQueue）
+- [x] 随机选词：复习模式洗牌式一轮一消耗，错题本两轮独立洗牌
+- [x] iOS 适配：移除固定 frame，响应式字体/输入框宽度，键盘焦点恢复（direction/state 变化时）
+- [x] 双端编译：`#if os(iOS)` / `#if !os(iOS)` 条件编译，macOS 和 iOS 均编译通过
 
 ---
 
