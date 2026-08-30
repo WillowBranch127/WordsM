@@ -207,8 +207,8 @@ struct ReviewView: View {
 
     init(mode: ReviewMode) {
         self.mode = mode
-        // placeholder only to satisfy compiler; body will replace with real manager
-        _viewModel = StateObject(wrappedValue: ReviewViewModel(mode: mode, manager: manager))
+        let wm = manager
+        _viewModel = StateObject(wrappedValue: ReviewViewModel(mode: mode, manager: wm))
     }
 
     var body: some View {
