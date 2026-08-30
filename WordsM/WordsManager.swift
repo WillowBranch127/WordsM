@@ -44,11 +44,13 @@ class WordsManager: ObservableObject {
 
     private func loadWords() {
         guard let bundleURL = Bundle.main.url(forResource: "words", withExtension: "json") else {
+            print("[WordsManager] words.json not found in bundle")
             return
         }
         do {
             let data = try Data(contentsOf: bundleURL)
             let decoded = try JSONDecoder().decode([Word].self, from: data)
+            print("[WordsManager] words loaded: \(decoded.count)")
             DispatchQueue.main.async {
                 self.words = decoded
             }

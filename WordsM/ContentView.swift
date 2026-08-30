@@ -1,24 +1,6 @@
 import SwiftUI
 import Combine
 
-@main
-struct WordsMApp: App {
-    @StateObject private var wordsManager = WordsManager()
-
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-                .environmentObject(wordsManager)
-        }
-        .windowStyle(.hiddenTitleBar)
-        .windowToolbarStyle(.unified)
-        Settings {
-            SettingsView()
-                .environmentObject(wordsManager)
-        }
-    }
-}
-
 // MARK: - Main Content View
 
 struct ContentView: View {
@@ -119,7 +101,7 @@ struct ActionButton: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(Color(UIColor.systemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
