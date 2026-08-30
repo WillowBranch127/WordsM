@@ -123,7 +123,7 @@ WordsM/
 ├── ContentView.swift      # 主界面：标题 + 三按钮（探索/复习/错题本）+ 底部统计
 ├── WordsManager.swift     # 数据层：加载词库，读写 learned/mistakes，提供随机抽词方法
 ├── ExploreView.swift      # 探索模式：展示单词 + "记住了，下一个"按钮
-├── ReviewView.swift       # 复习模式（待实现）：支持两种出题方向
+├── ReviewView.swift       # 复习模式 + 错题本：双模式、双方向完整实现，含 AI 语义判断
 ├── SettingsView.swift     # 设置界面：AI Base URL + API Key，onChange 自动保存
 ├── words.json             # 内置词库（3686 词）
 └── words.csv              # 原始词库（CSV 格式，UTF-8 BOM）
@@ -161,15 +161,18 @@ WordsM/
 
 ## 开发进度
 
-- [x] 数据层：`WordsManager`（词库加载、learned/mistakes 读写、随机抽词）
+- [x] 数据层：`WordsManager`（词库加载、learned/mistakes 读写、随机抽词、addToMistakes/removeFromMistakes）
 - [x] 主界面：三按钮布局 + 底部统计（已学/错题数量）
 - [x] 探索模式：随机展示未学单词，"记住了，下一个"功能完整
-- [x] 设置界面：AI 配置（Base URL、API Key、模型选择），自动保存
-- [x] 复习模式框架：状态机、两种出题方向、验证码式输入框
-- [x] 汉译英（看中文写英文）：完整实现，自动获取焦点，自定义光标
-- [ ] 英译汉（看英文写中文）：仅完成 AI 模型选择，输入框和答题逻辑待实现
-- [ ] 错题本模式：完整实现（含"移出错题本"逻辑）
-- [ ] AI 语义判断：调用 OpenAI 兼容 API 评估中文答案合理性
+- [x] 设置界面：AI 配置（Base URL、API Key、模型选择），onChange 自动保存，支持从 API 获取模型列表
+- [x] 复习模式（汉译英）：完整实现，验证码式格子输入框，自定义蓝色光标，自动获取焦点
+- [x] 复习模式（英译汉）：完整实现，单行居中 TextEditor，无框样式，placeholder 提示
+- [x] 错题本模式：完整实现，答对时显示"移出错题本"手动按钮
+- [x] 方向随机化：每次换题随机分配 cnToEn / enToCn
+- [x] AI 语义判断：OpenAI 兼容格式，结构化 prompt，容错解析（处理截断响应），fallback 关键词交集
+- [x] 答题逻辑：答错自动加入错题本（ViewModel 层处理），"不知道"只加错题本不切题
+- [x] 键盘支持：两个方向均支持 Enter 提交/下一步，结果页"下一个"按钮绑定 defaultAction
+- [x] 数据同步：所有视图共享同一个 WordsManager 实例（init 参数注入，非单例）
 
 ---
 
