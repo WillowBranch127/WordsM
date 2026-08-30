@@ -49,7 +49,7 @@ class ReviewViewModel: ObservableObject {
 
     // MARK: - Shuffle State
     private var shuffleQueue: [Int] = []
-    private var lastWordId: Int?
+    private var lastRoundOrder: [Int] = []
 
     // MARK: - Init
 
@@ -73,39 +73,23 @@ class ReviewViewModel: ObservableObject {
         case .mistakes:
             ids = manager.mistakeIDs
         }
-        // 队列为空时重新洗牌（用 lastWordId 增加熵，打破重复顺序）
+
+        guard !ids.isEmpty else {
+            currentWord = nil
+            return
+        }
+
+        // 当前轮已经消耗完，开始新一轮
         if shuffleQueue.isEmpty {
-            let sortedIds = ids.sorted()
-            // 如果 lastWordId 存在，将其移到末尾再打乱，增加随机性
-            if let lid = lastWordId, sortedIds.contains(lid) {
-                var idsWithSeed = sortedIds
-                if let idx = idsWithSeed.firstIndex(of: lid) {
-                    idsWithSeed.remove(at: idx)
-                    idsWithSeed.append(lid)
-                }
-                shuffleQueue = idsWithSeed.shuffled()
-            } else {
-                shuffleQueue = sortedIds.shuffled()
-            }
+            repeat {
+                shuffleQueue = ids.shuffled()
+            } while shuffleQueue.count > 1 && shuffleQueue == lastRoundOrder
+            lastRoundOrder = shuffleQueue
         }
-        // 在队列中找第一个不等于 lastWordId 的词
-        let count = shuffleQueue.count
-        for i in 0..<count {
-            let idx = i  // 顺序遍历即可，因为队列本身已打乱
-            let candidateId = shuffleQueue[idx]
-            if candidateId != lastWordId {
-                lastWordId = candidateId
-                // 把选中的移到末尾，保持剩余词的相对顺序
-                shuffleQueue.remove(at: idx)
-                shuffleQueue.append(candidateId)
-                currentWord = manager.words.first { $0.id == candidateId }
-                resetQuiz()
-                return
-            }
-        }
-        // 极端情况：队列只剩一个词，直接取（shuffleQueue 会自动重新打乱下次）
-        lastWordId = shuffleQueue[0]
-        currentWord = manager.words.first { $0.id == shuffleQueue[0] }
+
+        // 真正消耗队首元素，不再放回队尾
+        let candidateId = shuffleQueue.removeFirst()
+        currentWord = manager.words.first { $0.id == candidateId }
         resetQuiz()
     }
 
