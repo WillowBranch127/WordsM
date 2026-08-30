@@ -47,7 +47,9 @@ struct ContentView: View {
                 .padding(.horizontal, 40)
                 .padding(.bottom, 32)
             }
+#if !os(iOS)
             .frame(minWidth: 440, maxWidth: 520, minHeight: 480, maxHeight: 560)
+#endif
 #if os(iOS)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {

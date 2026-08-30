@@ -384,8 +384,12 @@ struct ReviewView: View {
                 EmptyState(mode: mode)
             }
         }
+#if !os(iOS)
         .frame(minWidth: 440, maxWidth: 520, minHeight: 480, maxHeight: 560)
         .onAppear { viewModel.loadWordIfNeeded() }
+#else
+        .onAppear { viewModel.loadWordIfNeeded() }
+#endif
     }
 
     @Environment(\.dismiss) private var dismiss
@@ -448,7 +452,9 @@ struct QuizCard: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 24)
         }
+#if !os(iOS)
         .frame(minWidth: 440, maxWidth: 520, minHeight: 480, maxHeight: 560)
+#endif
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 isTextFieldFocused = true
@@ -466,26 +472,39 @@ struct QuizCard: View {
     private var questionView: some View {
         VStack(spacing: 16) {
             if direction == .cnToEn {
-                // 看中文写英文：显示释义 + 词性（大字体）
-                Text(word.meaning)
-                    .font(.system(size: 28, weight: .medium))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-                Text(word.pos)
-                    .font(.system(size: 16))
-                    .foregroundStyle(.blue)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 4)
-                    .background(Color.blue.opacity(0.1))
-                    .clipShape(Capsule())
+                // 看中文写英文：显示释义 + 词性
+                VStack(spacing: 8) {
+                    Text(word.meaning)
+                        .font(.title2)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(3)
+#if os(iOS)
+                        .padding(.horizontal)
+#endif
+                    Text(word.pos)
+                        .font(.caption)
+                        .foregroundStyle(.blue)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 4)
+                        .background(Color.blue.opacity(0.1))
+                        .clipShape(Capsule())
+                }
+#if !os(iOS)
+                .padding(.horizontal)
+#endif
             } else {
-                // 看英文写中文：显示单词（超大字体）
-                Text(word.word)
-                    .font(.system(size: 56, weight: .bold))
-                    .foregroundStyle(.primary)
-                Text(word.phonetic)
-                    .font(.system(size: 18))
-                    .foregroundStyle(.secondary)
+                // 看英文写中文：显示单词
+                VStack(spacing: 8) {
+                    Text(word.word)
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.5)
+                        .foregroundStyle(.primary)
+                    Text(word.phonetic)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             // 如果显示答案，补充完整信息
@@ -514,8 +533,13 @@ struct QuizCard: View {
     /// 验证码式输入框 - 完全自定义实现
     private var captchaInputView: some View {
         let charCount = word.word.count
-        let itemWidth: CGFloat = 36   // 每个字母/下划线单元格的宽度
-        let spacing: CGFloat = 12     // 格子之间的间距
+#if os(iOS)
+        let itemWidth: CGFloat = min(36, (UIScreen.main.bounds.width - 80) / CGFloat(max(charCount, 1)))
+        let spacing: CGFloat = 6
+#else
+        let itemWidth: CGFloat = 36
+        let spacing: CGFloat = 12
+#endif
         let totalWidth: CGFloat = CGFloat(charCount) * itemWidth + CGFloat(max(0, charCount - 1)) * spacing
 
         return ZStack {

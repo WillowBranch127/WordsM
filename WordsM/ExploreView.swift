@@ -12,19 +12,23 @@ struct ExploreView: View {
             if let word = currentWord {
                 VStack(spacing: 12) {
                     Text(word.word)
-                        .font(.system(size: 36, weight: .bold))
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.5)
+                        .multilineTextAlignment(.center)
                     Text(word.phonetic)
-                        .font(.system(size: 16))
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                     Text(word.pos)
-                        .font(.system(size: 14))
+                        .font(.caption)
                         .foregroundStyle(.blue)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
                         .background(Color.blue.opacity(0.1))
                         .clipShape(Capsule())
                     Text(word.meaning)
-                        .font(.system(size: 17))
+                        .font(.body)
                         .foregroundStyle(.primary)
                         .multilineTextAlignment(.center)
                         .padding(.top, 4)
@@ -40,6 +44,7 @@ struct ExploreView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
+                .frame(maxWidth: .infinity)
                 .padding(.horizontal, 40)
             } else {
                 VStack(spacing: 12) {
