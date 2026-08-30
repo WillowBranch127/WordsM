@@ -126,7 +126,6 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 480, height: 300)
         .onChange(of: vm.baseURL) { _, _ in vm.save() }
         .onChange(of: vm.apiKey) { _, _ in vm.save() }
         .onChange(of: vm.selectedModel) { _, _ in vm.save() }
