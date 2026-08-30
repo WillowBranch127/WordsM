@@ -279,7 +279,11 @@ class ReviewViewModel: ObservableObject {
             manager.addToMistakes(word.id)
         }
         result = isCorrect ? .correct : .incorrect
-        state = .result
+        if !isCorrect {
+            state = .showingAnswer  // 答错时展示正确答案
+        } else {
+            state = .result
+        }
     }
 
     private func checkChineseAnswer(_ word: Word) {
