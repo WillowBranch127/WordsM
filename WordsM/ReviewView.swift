@@ -33,6 +33,13 @@ enum QuizResult {
     case skipped
 }
 
+// MARK: - Mistake Cycle Round
+
+enum MistakeCycleRound {
+    case first
+    case second
+}
+
 // MARK: - Review View Model
 
 class ReviewViewModel: ObservableObject {
@@ -52,6 +59,12 @@ class ReviewViewModel: ObservableObject {
     private var shuffleQueue: [Int] = []
     private var lastRoundOrder: [Int] = []
 
+    // MARK: - Mistake Cycle State
+    @Published var isMistakeCycleFinished: Bool = false
+    private var mistakeRound: MistakeCycleRound = .first
+    private var firstRoundDirections: [Int: QuizDirection] = [:]
+    private var mistakeShuffledIDs: [Int] = []
+
     // MARK: - Init
 
     init(mode: ReviewMode, manager: WordsManager) {
@@ -67,20 +80,23 @@ class ReviewViewModel: ObservableObject {
     // MARK: - Word Loading
 
     func loadNextWord() {
-        let ids: Set<Int>
         switch mode {
         case .learned:
-            ids = manager.learnedIDs
+            loadLearnedNextWord()
         case .mistakes:
-            ids = manager.mistakeIDs
+            loadMistakeNextWord()
         }
+    }
 
+    // MARK: - Learned Mode Word Loading
+
+    private func loadLearnedNextWord() {
+        let ids = manager.learnedIDs
         guard !ids.isEmpty else {
             currentWord = nil
             return
         }
 
-        // 当前轮已经消耗完，开始新一轮
         if shuffleQueue.isEmpty {
             repeat {
                 shuffleQueue = ids.shuffled()
@@ -88,11 +104,83 @@ class ReviewViewModel: ObservableObject {
             lastRoundOrder = shuffleQueue
         }
 
-        // 真正消耗队首元素，不再放回队尾
         let candidateId = shuffleQueue.removeFirst()
         currentWord = manager.words.first { $0.id == candidateId }
         resetQuiz()
     }
+
+    // MARK: - Mistake Mode Word Loading (Two-Round Cycle)
+
+    private func loadMistakeNextWord() {
+        guard !isMistakeCycleFinished else { return }
+
+        let currentIDs = manager.mistakeIDs
+        guard !currentIDs.isEmpty else {
+            currentWord = nil
+            isMistakeCycleFinished = true
+            return
+        }
+
+        // 当前轮队列耗尽，切换到下一轮
+        if mistakeShuffledIDs.isEmpty {
+            if mistakeRound == .first {
+                // 第一轮：为每个单词独立随机分配方向
+                firstRoundDirections = [:]
+                for id in currentIDs {
+                    firstRoundDirections[id] = [.cnToEn, .enToCn].randomElement() ?? .cnToEn
+                }
+                repeat {
+                    mistakeShuffledIDs = currentIDs.sorted().shuffled()
+                } while mistakeShuffledIDs.count > 1 && mistakeShuffledIDs == lastRoundOrder
+                lastRoundOrder = mistakeShuffledIDs
+                mistakeRound = .second
+            } else {
+                // 第二轮：只保留仍在错题本中且第一轮有方向记录的单词，方向取反
+                let stillValid = currentIDs.filter { firstRoundDirections[$0] != nil }
+                guard !stillValid.isEmpty else {
+                    currentWord = nil
+                    isMistakeCycleFinished = true
+                    return
+                }
+                repeat {
+                    mistakeShuffledIDs = stillValid.shuffled()
+                } while mistakeShuffledIDs.count > 1 && mistakeShuffledIDs == lastRoundOrder
+                lastRoundOrder = mistakeShuffledIDs
+                mistakeRound = .first  // 标记本轮结束后将进入完成状态
+            }
+        }
+
+        // 出队并跳过已移出错的题本
+        while !mistakeShuffledIDs.isEmpty {
+            let candidateId = mistakeShuffledIDs.removeFirst()
+            if currentIDs.contains(candidateId) {
+                currentWord = manager.words.first { $0.id == candidateId }
+                resetQuiz()
+                return
+            }
+        }
+
+        // 队列耗尽，两轮均完成
+        isMistakeCycleFinished = true
+        currentWord = nil
+    }
+
+    // MARK: - Reset Mistake Cycle
+
+    func resetMistakeCycle() {
+        mistakeRound = .first
+        firstRoundDirections = [:]
+        mistakeShuffledIDs = []
+        isMistakeCycleFinished = false
+        currentWord = nil
+    }
+
+    // MARK: - Opposite Direction
+
+    private func oppositeDirection(_ direction: QuizDirection) -> QuizDirection {
+        return direction == .cnToEn ? .enToCn : .cnToEn
+    }
+
 
     func resetQuiz() {
         state = .idle
@@ -100,8 +188,17 @@ class ReviewViewModel: ObservableObject {
         result = nil
         aiReferenceMeaning = nil
         isLoadingAI = false
-        direction = [.cnToEn, .enToCn].randomElement() ?? .cnToEn
         mistakeRemovedAfterWrong = false
+
+        if mode == .mistakes && currentWord != nil {
+            // 错题本模式：方向由第一轮记录决定，第二轮取反
+            if let savedDir = firstRoundDirections[currentWord!.id] {
+                direction = mistakeRound == .first ? savedDir : oppositeDirection(savedDir)
+            }
+        } else {
+            // 复习模式：随机分配方向
+            direction = [.cnToEn, .enToCn].randomElement() ?? .cnToEn
+        }
     }
 
     // MARK: - Actions
@@ -232,8 +329,12 @@ struct ReviewView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // 错题本大循环完成页面
+            if mode == .mistakes && viewModel.isMistakeCycleFinished {
+                MistakeCycleEndView(onRetry: viewModel.resetMistakeCycle, onExit: dismissAction)
+            }
             // 答题区
-            if let word = viewModel.currentWord {
+            else if let word = viewModel.currentWord {
                 QuizCard(
                     word: word,
                     mode: mode,
@@ -256,6 +357,12 @@ struct ReviewView: View {
         }
         .frame(minWidth: 440, maxWidth: 520, minHeight: 480, maxHeight: 560)
         .onAppear { viewModel.loadWordIfNeeded() }
+    }
+
+    @Environment(\.dismiss) private var dismiss
+
+    private func dismissAction() {
+        dismiss()
     }
 }
 
@@ -575,6 +682,41 @@ struct QuizCard: View {
             .padding(.top, 16)
             .padding(.bottom, 12)
             .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - Mistake Cycle End View
+
+struct MistakeCycleEndView: View {
+    var onRetry: () -> Void
+    var onExit: () -> Void
+
+    var body: some View {
+        VStack(spacing: 24) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 56))
+                .foregroundStyle(.green)
+            Text("你已刷完一次错题本啦！")
+                .font(.title2)
+                .fontWeight(.semibold)
+            HStack(spacing: 16) {
+                Button("再来一轮") {
+                    onRetry()
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .frame(maxWidth: .infinity)
+
+                Button("退出") {
+                    onExit()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.top, 60)
+        .padding(.horizontal, 40)
     }
 }
 
