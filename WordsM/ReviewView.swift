@@ -544,7 +544,7 @@ struct QuizCard: View {
                         // 复习模式下答错自动加入错题本，显示"AI判错？移出错题本"按钮
                         Button("AI判错？移出错题本") {
                             mistakeRemovedAfterWrong = true
-                            onRemoveFromMistakes?()
+                            // 只标记状态，不立即切题，等用户点"下一个"
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.large)
