@@ -496,7 +496,7 @@ struct QuizCard: View {
                     } else {
                         // 复习模式下答错自动加入错题本，无需手动确认
                         if result == .incorrect {
-                            addToMistakes()
+                            onAddToMistakes()
                         }
                     }
                 }
