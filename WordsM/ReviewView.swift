@@ -146,7 +146,6 @@ class ReviewViewModel: ObservableObject {
                     mistakeShuffledIDs = stillValid.shuffled()
                 } while mistakeShuffledIDs.count > 1 && mistakeShuffledIDs == lastRoundOrder
                 lastRoundOrder = mistakeShuffledIDs
-                mistakeRound = .first  // 标记本轮结束后将进入完成状态
             }
         }
 
@@ -160,8 +159,14 @@ class ReviewViewModel: ObservableObject {
             }
         }
 
-        // 队列耗尽，两轮均完成
-        isMistakeCycleFinished = true
+        // 队列耗尽
+        if mistakeRound == .first {
+            // 第一轮耗尽，开始第二轮（mistakeRound 已在上面设为 .second）
+            loadMistakeNextWord()
+        } else {
+            // 第二轮耗尽，大循环完成
+            isMistakeCycleFinished = true
+        }
         currentWord = nil
     }
 
