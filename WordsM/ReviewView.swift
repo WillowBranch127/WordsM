@@ -96,7 +96,8 @@ class ReviewViewModel: ObservableObject {
     }
 
     func showUnknown() {
-        addToMistakes()
+        guard let word = currentWord else { return }
+        manager.addToMistakes(word.id)
         state = .showingAnswer
     }
 
