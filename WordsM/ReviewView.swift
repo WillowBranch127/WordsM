@@ -639,7 +639,7 @@ struct QuizCard: View {
                         .buttonStyle(.bordered)
                         .controlSize(.large)
 
-                        Button(userInput.isEmpty ? "提交" : "下一个") {
+                        Button(state == .idle ? "提交" : "下一个") {
                             if state == .idle {
                                 onSubmit?()
                             } else {
