@@ -484,16 +484,14 @@ struct QuizCard: View {
                     .controlSize(.large)
                     .frame(maxWidth: .infinity)
 
-                    if mode == .mistakes {
-                        if result == .correct {
-                            Button("移出错题本") {
-                                onRemoveFromMistakes?()
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.large)
-                            .frame(maxWidth: .infinity)
+                    if mode == .mistakes && result == .correct {
+                        Button("移出错题本") {
+                            onRemoveFromMistakes?()
                         }
-                    } else if result == .incorrect {
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                        .frame(maxWidth: .infinity)
+                    } else if mode != .mistakes && result == .incorrect {
                         // 复习模式下答错自动加入错题本，无需手动确认
                         onAddToMistakes?()
                     }
