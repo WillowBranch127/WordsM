@@ -96,7 +96,6 @@ class ReviewViewModel: ObservableObject {
     }
 
     func showUnknown() {
-        addToMistakes()
         state = .showingAnswer
     }
 
@@ -492,11 +491,8 @@ struct QuizCard: View {
                         .controlSize(.large)
                         .frame(maxWidth: .infinity)
                     } else if mode != .mistakes && result == .incorrect {
-                        // 复习模式下答错自动加入错题本，无需手动确认
-                        Group {
-                            EmptyView()
-                        }
-                            .onAppear { onAddToMistakes?() }
+                        // 复习模式下答错自动加入错题本
+                        onAddToMistakes?()
                     }
                 }
 
