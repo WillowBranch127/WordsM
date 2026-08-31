@@ -68,16 +68,6 @@
 			path = "WordsM iOS";
 			sourceTree = "<group>";
 		};
-		6BA9E29A304482D600385BF3 /* WordsM iOSTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "WordsM iOSTests";
-			sourceTree = "<group>";
-		};
-		6BA9E2A4304482D600385BF3 /* WordsM iOSUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "WordsM iOSUITests";
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -109,8 +99,6 @@
 			children = (
 				000000000000000000000010 /* WordsM */,
 				6BA9E283304482D400385BF3 /* WordsM iOS */,
-				6BA9E29A304482D600385BF3 /* WordsM iOSTests */,
-				6BA9E2A4304482D600385BF3 /* WordsM iOSUITests */,
 				000000000000000000000020 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -178,9 +166,6 @@
 			dependencies = (
 				6BA9E299304482D600385BF3 /* PBXTargetDependency */,
 			);
-			fileSystemSynchronizedGroups = (
-				6BA9E29A304482D600385BF3 /* WordsM iOSTests */,
-			);
 			name = "WordsM iOSTests";
 			productName = "WordsM iOSTests";
 			productReference = 6BA9E297304482D600385BF3 /* WordsM iOSTests.xctest */;
@@ -198,9 +183,6 @@
 			);
 			dependencies = (
 				6BA9E2A3304482D600385BF3 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				6BA9E2A4304482D600385BF3 /* WordsM iOSUITests */,
 			);
 			name = "WordsM iOSUITests";
 			productName = "WordsM iOSUITests";

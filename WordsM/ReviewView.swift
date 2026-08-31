@@ -75,6 +75,9 @@ class ReviewViewModel: ObservableObject {
     init(mode: ReviewMode, manager: WordsManager) {
         self.mode = mode
         self.manager = manager
+        // Load word immediately so currentWord is set before first render,
+        // preventing the empty-state flash that causes layout bounce.
+        loadWordIfNeeded()
     }
     
     func loadWordIfNeeded() {
@@ -386,7 +389,6 @@ struct ReviewView: View {
         }
 #if !os(iOS)
         .frame(minWidth: 440, maxWidth: 520, minHeight: 480, maxHeight: 560)
-        .onAppear { viewModel.loadWordIfNeeded() }
 #else
         .onAppear { viewModel.loadWordIfNeeded() }
 #endif
