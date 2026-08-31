@@ -6,20 +6,97 @@
 	objectVersion = 90;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		6BA9E298304482D600385BF3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 000000000000000000000000 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6BA9E281304482D300385BF3;
+			remoteInfo = "WordsM iOS";
+		};
+		6BA9E2A2304482D600385BF3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 000000000000000000000000 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6BA9E281304482D300385BF3;
+			remoteInfo = "WordsM iOS";
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		000000000000000000000120 /* WordsM.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WordsM.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6BA9E282304482D300385BF3 /* WordsM iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "WordsM iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		6BA9E297304482D600385BF3 /* WordsM iOSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "WordsM iOSTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		6BA9E2A1304482D600385BF3 /* WordsM iOSUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "WordsM iOSUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		6BA9E2AD304482D600385BF3 /* Exceptions for "WordsM iOS" folder in "WordsM iOS" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 6BA9E281304482D300385BF3 /* WordsM iOS */;
+		};
+		6BA9E2B7304482FE00385BF3 /* Exceptions for "WordsM" folder in "WordsM iOS" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				ContentView.swift,
+				ExploreView.swift,
+				ReviewView.swift,
+				SettingsView.swift,
+				WordsManager.swift,
+			);
+			target = 6BA9E281304482D300385BF3 /* WordsM iOS */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		000000000000000000000010 /* WordsM */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				6BA9E2B7304482FE00385BF3 /* Exceptions for "WordsM" folder in "WordsM iOS" target */,
+			);
 			path = WordsM;
+			sourceTree = "<group>";
+		};
+		6BA9E283304482D400385BF3 /* WordsM iOS */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				6BA9E2AD304482D600385BF3 /* Exceptions for "WordsM iOS" folder in "WordsM iOS" target */,
+			);
+			path = "WordsM iOS";
+			sourceTree = "<group>";
+		};
+		6BA9E29A304482D600385BF3 /* WordsM iOSTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "WordsM iOSTests";
+			sourceTree = "<group>";
+		};
+		6BA9E2A4304482D600385BF3 /* WordsM iOSUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "WordsM iOSUITests";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		000000000000000130000000 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+		6BA9E27F304482D300385BF3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+		6BA9E294304482D600385BF3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+		6BA9E29E304482D600385BF3 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
 			);
@@ -31,6 +108,9 @@
 			isa = PBXGroup;
 			children = (
 				000000000000000000000010 /* WordsM */,
+				6BA9E283304482D400385BF3 /* WordsM iOS */,
+				6BA9E29A304482D600385BF3 /* WordsM iOSTests */,
+				6BA9E2A4304482D600385BF3 /* WordsM iOSUITests */,
 				000000000000000000000020 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -39,6 +119,9 @@
 			isa = PBXGroup;
 			children = (
 				000000000000000000000120 /* WordsM.app */,
+				6BA9E282304482D300385BF3 /* WordsM iOS.app */,
+				6BA9E297304482D600385BF3 /* WordsM iOSTests.xctest */,
+				6BA9E2A1304482D600385BF3 /* WordsM iOSUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -64,6 +147,66 @@
 			productReference = 000000000000000000000120 /* WordsM.app */;
 			productType = "com.apple.product-type.application";
 		};
+		6BA9E281304482D300385BF3 /* WordsM iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6BA9E2AE304482D600385BF3 /* Build configuration list for PBXNativeTarget "WordsM iOS" */;
+			buildPhases = (
+				6BA9E27E304482D300385BF3 /* Sources */,
+				6BA9E27F304482D300385BF3 /* Frameworks */,
+				6BA9E280304482D300385BF3 /* Resources */,
+			);
+			buildRules = (
+			);
+			fileSystemSynchronizedGroups = (
+				6BA9E283304482D400385BF3 /* WordsM iOS */,
+			);
+			name = "WordsM iOS";
+			productName = "WordsM iOS";
+			productReference = 6BA9E282304482D300385BF3 /* WordsM iOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+		6BA9E296304482D600385BF3 /* WordsM iOSTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6BA9E2AF304482D600385BF3 /* Build configuration list for PBXNativeTarget "WordsM iOSTests" */;
+			buildPhases = (
+				6BA9E293304482D600385BF3 /* Sources */,
+				6BA9E294304482D600385BF3 /* Frameworks */,
+				6BA9E295304482D600385BF3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				6BA9E299304482D600385BF3 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				6BA9E29A304482D600385BF3 /* WordsM iOSTests */,
+			);
+			name = "WordsM iOSTests";
+			productName = "WordsM iOSTests";
+			productReference = 6BA9E297304482D600385BF3 /* WordsM iOSTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		6BA9E2A0304482D600385BF3 /* WordsM iOSUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6BA9E2B0304482D600385BF3 /* Build configuration list for PBXNativeTarget "WordsM iOSUITests" */;
+			buildPhases = (
+				6BA9E29D304482D600385BF3 /* Sources */,
+				6BA9E29E304482D600385BF3 /* Frameworks */,
+				6BA9E29F304482D600385BF3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				6BA9E2A3304482D600385BF3 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				6BA9E2A4304482D600385BF3 /* WordsM iOSUITests */,
+			);
+			name = "WordsM iOSUITests";
+			productName = "WordsM iOSUITests";
+			productReference = 6BA9E2A1304482D600385BF3 /* WordsM iOSUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -71,11 +214,22 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2630;
+				LastSwiftUpdateCheck = 2700;
 				LastUpgradeCheck = 2700;
 				TargetAttributes = {
 					000000000000000100000000 = {
 						CreatedOnToolsVersion = 26.3;
+					};
+					6BA9E281304482D300385BF3 = {
+						CreatedOnToolsVersion = 27.0;
+					};
+					6BA9E296304482D600385BF3 = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = 6BA9E281304482D300385BF3;
+					};
+					6BA9E2A0304482D600385BF3 = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = 6BA9E281304482D300385BF3;
 					};
 				};
 			};
@@ -94,12 +248,30 @@
 			projectRoot = "";
 			targets = (
 				000000000000000100000000 /* WordsM */,
+				6BA9E281304482D300385BF3 /* WordsM iOS */,
+				6BA9E296304482D600385BF3 /* WordsM iOSTests */,
+				6BA9E2A0304482D600385BF3 /* WordsM iOSUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		000000000000000140000000 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		6BA9E280304482D300385BF3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		6BA9E295304482D600385BF3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		6BA9E29F304482D600385BF3 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
@@ -112,7 +284,35 @@
 			files = (
 			);
 		};
+		6BA9E27E304482D300385BF3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		6BA9E293304482D600385BF3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		6BA9E29D304482D600385BF3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		6BA9E299304482D600385BF3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6BA9E281304482D300385BF3 /* WordsM iOS */;
+			targetProxy = 6BA9E298304482D600385BF3 /* PBXContainerItemProxy */;
+		};
+		6BA9E2A3304482D600385BF3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6BA9E281304482D300385BF3 /* WordsM iOS */;
+			targetProxy = 6BA9E2A2304482D600385BF3 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		000000000000000011000000 /* Debug configuration for PBXProject "WordsM" */ = {
@@ -264,8 +464,6 @@
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
-				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -303,8 +501,6 @@
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
-				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -327,6 +523,157 @@
 			};
 			name = Release;
 		};
+		6BA9E2A7304482D600385BF3 /* Debug configuration for PBXNativeTarget "WordsM iOS" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 282GASCQ52;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "WordsM iOS/Info.plist";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "-.WordsM-iOS";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		6BA9E2A8304482D600385BF3 /* Release configuration for PBXNativeTarget "WordsM iOS" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 282GASCQ52;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "WordsM iOS/Info.plist";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "-.WordsM-iOS";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		6BA9E2A9304482D600385BF3 /* Debug configuration for PBXNativeTarget "WordsM iOSTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "-.WordsM-iOSTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/WordsM iOS.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/WordsM iOS";
+			};
+			name = Debug;
+		};
+		6BA9E2AA304482D600385BF3 /* Release configuration for PBXNativeTarget "WordsM iOSTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "-.WordsM-iOSTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/WordsM iOS.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/WordsM iOS";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		6BA9E2AB304482D600385BF3 /* Debug configuration for PBXNativeTarget "WordsM iOSUITests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "-.WordsM-iOSUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "WordsM iOS";
+			};
+			name = Debug;
+		};
+		6BA9E2AC304482D600385BF3 /* Release configuration for PBXNativeTarget "WordsM iOSUITests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "-.WordsM-iOSUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "WordsM iOS";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -343,6 +690,30 @@
 			buildConfigurations = (
 				000000000000000111000000 /* Debug configuration for PBXNativeTarget "WordsM" */,
 				000000000000000112000000 /* Release configuration for PBXNativeTarget "WordsM" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		6BA9E2AE304482D600385BF3 /* Build configuration list for PBXNativeTarget "WordsM iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6BA9E2A7304482D600385BF3 /* Debug configuration for PBXNativeTarget "WordsM iOS" */,
+				6BA9E2A8304482D600385BF3 /* Release configuration for PBXNativeTarget "WordsM iOS" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		6BA9E2AF304482D600385BF3 /* Build configuration list for PBXNativeTarget "WordsM iOSTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6BA9E2A9304482D600385BF3 /* Debug configuration for PBXNativeTarget "WordsM iOSTests" */,
+				6BA9E2AA304482D600385BF3 /* Release configuration for PBXNativeTarget "WordsM iOSTests" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		6BA9E2B0304482D600385BF3 /* Build configuration list for PBXNativeTarget "WordsM iOSUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6BA9E2AB304482D600385BF3 /* Debug configuration for PBXNativeTarget "WordsM iOSUITests" */,
+				6BA9E2AC304482D600385BF3 /* Release configuration for PBXNativeTarget "WordsM iOSUITests" */,
 			);
 			defaultConfigurationName = Release;
 		};
