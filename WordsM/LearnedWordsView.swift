@@ -4,11 +4,22 @@ import SwiftUI
 
 struct LearnedWordsView: View {
     @EnvironmentObject var manager: WordsManager
+    @State private var searchText = ""
 
-    var learnedWords: [Word] {
-        manager.words
+    var filteredWords: [Word] {
+        let learned = manager.words
             .filter { manager.learnedIDs.contains($0.id) }
             .sorted { $0.word.lowercased() < $1.word.lowercased() }
+
+        guard !searchText.isEmpty else { return learned }
+
+        let query = searchText.lowercased()
+        return learned.filter { word in
+            word.word.lowercased().contains(query)
+            || word.meaning.contains(searchText)
+            || word.phonetic.lowercased().contains(query)
+            || word.pos.lowercased().contains(query)
+        }
     }
 
     var body: some View {
@@ -16,19 +27,24 @@ struct LearnedWordsView: View {
             content
                 .navigationTitle("已学单词")
                 .toolbar {
+#if os(iOS)
                     ToolbarItem(placement: .navigationBarTrailing) {
-                        Text("\(learnedWords.count) 个")
+                        Text("\(filteredWords.count) 个")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
+#endif
                 }
+                .searchable(text: $searchText, prompt: "搜索单词或释义")
         }
     }
 
     @ViewBuilder
     private var content: some View {
-        if learnedWords.isEmpty {
+        if manager.learnedIDs.isEmpty {
             emptyView
+        } else if filteredWords.isEmpty {
+            noResultView
         } else {
             listContent
         }
@@ -47,9 +63,22 @@ struct LearnedWordsView: View {
         .padding(.top, 60)
     }
 
+    private var noResultView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 48))
+                .foregroundStyle(.secondary)
+            Text("没有找到匹配的单词")
+                .font(.title2)
+            Text("试试其他关键词")
+                .foregroundStyle(.secondary)
+        }
+        .padding(.top, 60)
+    }
+
     private var listContent: some View {
         List {
-            ForEach(learnedWords) { word in
+            ForEach(filteredWords) { word in
                 WordRow(word: word)
             }
         }
