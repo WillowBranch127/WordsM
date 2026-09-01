@@ -21,6 +21,10 @@ struct ContentView: View {
                 .padding(.bottom, 36)
 
                 VStack(spacing: 16) {
+                    CustomNavLink(destination: LearnedWordsView()) {
+                        ActionButton(icon: "book.fill", title: "已学单词", subtitle: "\(manager.learnedIDs.count) 个已掌握")
+                    }
+
                     CustomNavLink(destination: ExploreView()) {
                         ActionButton(icon: "magnifyingglass", title: "探索模式", subtitle: "随机浏览新单词")
                     }
