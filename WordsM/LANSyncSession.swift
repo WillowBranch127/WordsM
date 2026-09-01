@@ -39,9 +39,9 @@ final class LANSyncSession {
         connection.start(queue: .global(qos: .userInitiated))
 
         do {
-            try await runSessionWithTimeout()
+            let mergeResult = try await runSessionWithTimeout()
             await MainActor.run {
-                self.result = SyncMergeResult(addedLearnedCount: 0, addedMistakeCount: 0)
+                self.result = mergeResult
             }
         } catch LANSyncError.timeout {
             print("[LANSyncSession] Session timeout after \(timeout)s")
@@ -63,7 +63,7 @@ final class LANSyncSession {
 
     /// Wraps the session in a timeout. If the session does not complete within `timeout` seconds,
     /// throws LANSyncError.timeout.
-    private func runSessionWithTimeout() async throws {
+    private func runSessionWithTimeout() async throws -> SyncMergeResult {
         enum Phase { case sessionDone, timeout }
         var phase: Phase? = nil
 
@@ -89,12 +89,12 @@ final class LANSyncSession {
             throw LANSyncError.timeout
         }
 
-        try await sessionTask.value
+        return try await sessionTask.value
     }
 
     // MARK: - Session Flow
 
-    private func runSession() async throws {
+    private func runSession() async throws -> SyncMergeResult {
         // Phase 1: Hello exchange
         print("[LANSyncSession] Sending hello")
         try await sendEnvelope(.hello, data: try JSONEncoder().encode(SyncHello(
@@ -170,9 +170,7 @@ final class LANSyncSession {
         manager.mergeSyncedData(remoteLearnedIDs: remoteLearned, remoteMistakeIDs: remoteMistakes)
         print("[LANSyncSession] Merge completed: learned +\(addedLearned), mistakes +\(addedMistakes)")
 
-        await MainActor.run {
-            self.result = SyncMergeResult(addedLearnedCount: addedLearned, addedMistakeCount: addedMistakes)
-        }
+        return SyncMergeResult(addedLearnedCount: addedLearned, addedMistakeCount: addedMistakes)
 
         // Phase 7: Send complete
         print("[LANSyncSession] Sending complete")
