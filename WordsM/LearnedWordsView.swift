@@ -79,7 +79,7 @@ struct LearnedWordsView: View {
     private var listContent: some View {
         List {
             ForEach(filteredWords) { word in
-                WordRow(word: word)
+                WordRow(word: word, isInMistakes: manager.mistakeIDs.contains(word.id))
             }
         }
 #if os(iOS)
@@ -92,16 +92,25 @@ struct LearnedWordsView: View {
 
 struct WordRow: View {
     let word: Word
+    let isInMistakes: Bool
+
+    private let accentColor: Color = {
+       #if os(iOS)
+        return .red
+        #else
+        return .red
+        #endif
+    }()
 
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(word.word)
                     .font(.headline)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(isInMistakes ? accentColor : .primary)
                 Text(word.phonetic)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(isInMistakes ? accentColor.opacity(0.7) : .secondary)
             }
 
             Spacer()
@@ -109,14 +118,14 @@ struct WordRow: View {
             VStack(alignment: .trailing, spacing: 4) {
                 Text(word.pos)
                     .font(.caption)
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(isInMistakes ? accentColor : .blue)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 2)
-                    .background(Color.blue.opacity(0.1))
+                    .background(isInMistakes ? accentColor.opacity(0.1) : Color.blue.opacity(0.1))
                     .clipShape(Capsule())
                 Text(word.meaning)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(isInMistakes ? accentColor.opacity(0.85) : .secondary)
                     .multilineTextAlignment(.trailing)
                     .lineLimit(2)
             }
