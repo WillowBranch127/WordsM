@@ -13,7 +13,7 @@ struct WordsMApp: App {
         .windowStyle(.hiddenTitleBar)
         .windowToolbarStyle(.unified)
         Settings {
-            SettingsView()
+            SettingsView(manager: wordsManager)
                 .environmentObject(wordsManager)
         }
     }

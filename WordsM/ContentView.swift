@@ -54,7 +54,7 @@ struct ContentView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     NavigationLink {
-                        SettingsView()
+                        SettingsView(manager: manager)
                             .environmentObject(manager)
                     } label: {
                         Image(systemName: "gearshape")

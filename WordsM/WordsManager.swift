@@ -20,7 +20,6 @@ class WordsManager: ObservableObject {
     @Published var learnedIDs: Set<Int> = []
     @Published var mistakeIDs: Set<Int> = []
 
-
     private let documentsURL: URL
     private let learnedURL: URL
     private let mistakesURL: URL
@@ -110,6 +109,30 @@ class WordsManager: ObservableObject {
     private func saveMistakes() {
         let array = Array(mistakeIDs).sorted()
         save(array, to: mistakesURL)
+    }
+
+    // MARK: - LAN Sync Merge API
+
+    /// Merges remote learned and mistake IDs into local state via union.
+    /// Returns the count of newly added IDs for each category.
+    @discardableResult
+    func mergeSyncedData(
+        remoteLearnedIDs: Set<Int>,
+        remoteMistakeIDs: Set<Int>
+    ) -> SyncMergeResult {
+        let oldLearned = learnedIDs
+        let oldMistakes = mistakeIDs
+
+        learnedIDs.formUnion(remoteLearnedIDs)
+        mistakeIDs.formUnion(remoteMistakeIDs)
+
+        saveLearned()
+        saveMistakes()
+
+        let addedLearned = learnedIDs.subtracting(oldLearned).count
+        let addedMistakes = mistakeIDs.subtracting(oldMistakes).count
+
+        return SyncMergeResult(addedLearnedCount: addedLearned, addedMistakeCount: addedMistakes)
     }
 
     // MARK: - Helpers

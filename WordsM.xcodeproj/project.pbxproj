@@ -41,11 +41,8 @@
 		6BA9E2B7304482FE00385BF3 /* Exceptions for "WordsM" folder in "WordsM iOS" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				ContentView.swift,
-				ExploreView.swift,
-				ReviewView.swift,
-				SettingsView.swift,
-				WordsManager.swift,
+				WordsMApp.swift,
+				all_files_content.txt,
 			);
 			target = 6BA9E281304482D300385BF3 /* WordsM iOS */;
 		};
@@ -146,6 +143,7 @@
 			buildRules = (
 			);
 			fileSystemSynchronizedGroups = (
+				000000000000000000000010 /* WordsM */,
 				6BA9E283304482D400385BF3 /* WordsM iOS */,
 			);
 			name = "WordsM iOS";
