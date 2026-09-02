@@ -4,6 +4,7 @@ import Combine
 // MARK: - Review Mode
 
 enum ReviewMode {
+    case custom
     case learned
     case mistakes
 }
@@ -47,6 +48,7 @@ private enum MistakeCyclePhase {
 // MARK: - Review View Model
 
 class ReviewViewModel: ObservableObject {
+    let selectedIDs: Set<Int>?
     @Published var currentWord: Word?
     @Published var direction: QuizDirection = .cnToEn
     @Published var state: QuizState = .idle
@@ -72,9 +74,10 @@ class ReviewViewModel: ObservableObject {
 
     // MARK: - Init
 
-    init(mode: ReviewMode, manager: WordsManager) {
+    init(mode: ReviewMode, manager: WordsManager, selectedIDs: Set<Int>? = nil) {
         self.mode = mode
         self.manager = manager
+        self.selectedIDs = selectedIDs
         // Load word immediately so currentWord is set before first render,
         // preventing the empty-state flash that causes layout bounce.
         loadWordIfNeeded()
@@ -93,6 +96,8 @@ class ReviewViewModel: ObservableObject {
             loadLearnedNextWord()
         case .mistakes:
             loadMistakeNextWord()
+        case .custom:
+            loadCustomNextWord()
         }
     }
 
@@ -100,6 +105,27 @@ class ReviewViewModel: ObservableObject {
 
     private func loadLearnedNextWord() {
         let ids = manager.learnedIDs
+        guard !ids.isEmpty else {
+            currentWord = nil
+            return
+        }
+
+        if shuffleQueue.isEmpty {
+            repeat {
+                shuffleQueue = ids.shuffled()
+            } while shuffleQueue.count > 1 && shuffleQueue == lastRoundOrder
+            lastRoundOrder = shuffleQueue
+        }
+
+        let candidateId = shuffleQueue.removeFirst()
+        currentWord = manager.words.first { $0.id == candidateId }
+        resetQuiz()
+    }
+
+    // MARK: - Custom Mode Word Loading
+
+    private func loadCustomNextWord() {
+        let ids = selectedIDs ?? manager.learnedIDs
         guard !ids.isEmpty else {
             currentWord = nil
             return
@@ -354,11 +380,11 @@ class ReviewViewModel: ObservableObject {
     private func triggerHaptic(isCorrect: Bool) {
 #if os(iOS)
         if isCorrect {
-            // 两次轻震动，类似 App Store 支付成功
-            let g1 = UIImpactFeedbackGenerator(style: .light)
+            // 两次中强度震动，类似 App Store 支付成功
+            let g1 = UIImpactFeedbackGenerator(style: .medium)
             g1.impactOccurred()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
-                let g2 = UIImpactFeedbackGenerator(style: .light)
+                let g2 = UIImpactFeedbackGenerator(style: .medium)
                 g2.impactOccurred()
             }
         } else {
@@ -378,11 +404,13 @@ class ReviewViewModel: ObservableObject {
 
 struct ReviewView: View {
     let mode: ReviewMode
+    let selectedIDs: Set<Int>? 
     @StateObject private var viewModel: ReviewViewModel
 
-    init(mode: ReviewMode, manager: WordsManager) {
+    init(mode: ReviewMode, manager: WordsManager, selectedIDs: Set<Int>? = nil) {
         self.mode = mode
-        _viewModel = StateObject(wrappedValue: ReviewViewModel(mode: mode, manager: manager))
+        self.selectedIDs = selectedIDs
+        _viewModel = StateObject(wrappedValue: ReviewViewModel(mode: mode, manager: manager, selectedIDs: selectedIDs))
     }
 
     var body: some View {
@@ -410,7 +438,7 @@ struct ReviewView: View {
                     isLoadingAI: viewModel.isLoadingAI
                 )
             } else {
-                EmptyState(mode: mode)
+                EmptyState(mode: mode, selectedIDs: selectedIDs)
             }
         }
 #if !os(iOS)
@@ -769,7 +797,7 @@ struct QuizCard: View {
     }
 
     private var titleHeader: some View {
-        Text(mode == .learned ? "复习模式" : "错题本")
+        Text(mode == .learned ? "复习模式" : mode == .mistakes ? "错题本" : "自定义复习")
             .font(.title3)
             .fontWeight(.semibold)
             .foregroundStyle(.primary)
@@ -818,17 +846,20 @@ struct MistakeCycleEndView: View {
 
 struct EmptyState: View {
     let mode: ReviewMode
+    let selectedIDs: Set<Int>? 
 
     var body: some View {
         VStack(spacing: 12) {
-            Image(systemName: mode == .learned ? "book.open.fill" : "trash.fill")
+            Image(systemName: mode == .mistakes ? "trash.fill" : mode == .custom ? "square.grid.2x2.fill" : "book.open.fill")
                 .font(.system(size: 48))
                 .foregroundStyle(.secondary)
-            Text(mode == .learned ? "没有已学单词" : "错题本为空")
+            Text(mode == .mistakes ? "错题本为空" : mode == .custom ? "没有选择单词" : "没有已学单词")
                 .font(.title2)
-            Text(mode == .learned
-                ? "请先在探索模式中学习一些单词"
-                : "答错后会自动添加到错题本")
+            Text(mode == .mistakes
+                ? "答错后会自动添加到错题本"
+                : mode == .custom
+                ? "请在自定义模式中选择要复习的单词"
+                : "请先在探索模式中学习一些单词")
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
@@ -960,6 +991,14 @@ extension String {
 
 // MARK: - Preview
 
+// MARK: - Preview
+
+#Preview {
+    CustomModeView()
+        .environmentObject(WordsManager())
+}
+
+// Original preview
 #Preview {
     ReviewView(mode: .learned, manager: WordsManager())
 }

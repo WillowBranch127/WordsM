@@ -34,7 +34,11 @@ struct ContentView: View {
                     }
 
                     CustomNavLink(destination: ReviewView(mode: .mistakes, manager: manager)) {
-                        ActionButton(icon: "book.fill", title: "错题本", subtitle: "\(manager.mistakeIDs.count) 个待复习")
+                        ActionButton(icon: "pencil", title: "错题本", subtitle: "\(manager.mistakeIDs.count) 个待复习")
+                    }
+
+                    CustomNavLink(destination: CustomModeView()) {
+                        ActionButton(icon: "slider.horizontal.3", title: "自定义模式", subtitle: "选择要复习的单词")
                     }
                 }
                 .padding(.horizontal, 40)
