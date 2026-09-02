@@ -353,9 +353,23 @@ class ReviewViewModel: ObservableObject {
 
     private func triggerHaptic(isCorrect: Bool) {
 #if os(iOS)
-        let style: UIImpactFeedbackGenerator.FeedbackStyle = isCorrect ? .light : .heavy
-        let generator = UIImpactFeedbackGenerator(style: style)
-        generator.impactOccurred()
+        if isCorrect {
+            // 两次轻震动，类似 App Store 支付成功
+            let g1 = UIImpactFeedbackGenerator(style: .light)
+            g1.impactOccurred()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                let g2 = UIImpactFeedbackGenerator(style: .light)
+                g2.impactOccurred()
+            }
+        } else {
+            // 三次重震动，类似拨片静音的顿挫感
+            for i in 0..<3 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.06) {
+                    let g = UIImpactFeedbackGenerator(style: .heavy)
+                    g.impactOccurred()
+                }
+            }
+        }
 #endif
     }
 }
