@@ -19,10 +19,12 @@ class WordsManager: ObservableObject {
     @Published var words: [Word] = []
     @Published var learnedIDs: Set<Int> = []
     @Published var mistakeIDs: Set<Int> = []
+    @Published var mistakeCounts: [Int: Int] = [:]  // 记录每个单词的错误次数
 
     private let documentsURL: URL
     private let learnedURL: URL
     private let mistakesURL: URL
+    private let mistakeCountsURL: URL
 
     // MARK: - Init
 
@@ -33,10 +35,12 @@ class WordsManager: ObservableObject {
         self.documentsURL = docs
         self.learnedURL = docs.appendingPathComponent("learned.json")
         self.mistakesURL = docs.appendingPathComponent("mistakes.json")
+        self.mistakeCountsURL = docs.appendingPathComponent("mistake_counts.json")
 
         loadWords()
         loadLearned()
         loadMistakes()
+        loadMistakeCounts()
     }
 
     // MARK: - Words
@@ -96,9 +100,31 @@ class WordsManager: ObservableObject {
         }
     }
 
+    func loadMistakeCounts() {
+        guard let data = try? Data(contentsOf: mistakeCountsURL) else { return }
+        do {
+            let counts = try JSONDecoder().decode([Int: Int].self, from: data)
+            DispatchQueue.main.async {
+                self.mistakeCounts = counts
+            }
+        } catch {
+            print("[WordsManager] Failed to load mistake counts: \(error)")
+        }
+    }
+
     func addToMistakes(_ id: Int) {
         mistakeIDs.insert(id)
         saveMistakes()
+        incrementMistakeCount(id)
+    }
+
+    func incrementMistakeCount(_ id: Int) {
+        mistakeCounts[id, default: 0] += 1
+        saveMistakeCounts()
+    }
+
+    func getMistakeCount(_ id: Int) -> Int {
+        return mistakeCounts[id, default: 0]
     }
 
     func removeFromMistakes(_ id: Int) {
@@ -109,6 +135,17 @@ class WordsManager: ObservableObject {
     private func saveMistakes() {
         let array = Array(mistakeIDs).sorted()
         save(array, to: mistakesURL)
+    }
+
+    private func saveMistakeCounts() {
+        do {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.sortedKeys, .prettyPrinted]
+            let data = try encoder.encode(mistakeCounts)
+            try data.write(to: mistakeCountsURL)
+        } catch {
+            print("[WordsManager] Save mistake counts failed: \(error)")
+        }
     }
 
     // MARK: - LAN Sync Merge API

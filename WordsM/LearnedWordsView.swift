@@ -79,7 +79,7 @@ struct LearnedWordsView: View {
     private var listContent: some View {
         List {
             ForEach(filteredWords) { word in
-                WordRow(word: word, isInMistakes: manager.mistakeIDs.contains(word.id))
+                WordRow(word: word, isInMistakes: manager.mistakeIDs.contains(word.id), mistakeCount: manager.getMistakeCount(word.id))
             }
         }
 #if os(iOS)
@@ -93,6 +93,7 @@ struct LearnedWordsView: View {
 struct WordRow: View {
     let word: Word
     let isInMistakes: Bool
+    let mistakeCount: Int
 
     private let accentColor: Color = {
        #if os(iOS)
@@ -116,13 +117,30 @@ struct WordRow: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 4) {
-                Text(word.pos)
-                    .font(.caption)
-                    .foregroundStyle(isInMistakes ? accentColor : .blue)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 2)
-                    .background(isInMistakes ? accentColor.opacity(0.1) : Color.blue.opacity(0.1))
-                    .clipShape(Capsule())
+                HStack(spacing: 8) {
+                    Text(word.pos)
+                        .font(.caption)
+                        .foregroundStyle(isInMistakes ? accentColor : .blue)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(isInMistakes ? accentColor.opacity(0.1) : Color.blue.opacity(0.1))
+                        .clipShape(Capsule())
+                    
+                    if mistakeCount > 0 {
+                        HStack(spacing: 2) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 10))
+                                .foregroundStyle(.red)
+                            Text("\(mistakeCount)")
+                                .font(.caption2)
+                                .foregroundStyle(.red)
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.red.opacity(0.1))
+                        .clipShape(Capsule())
+                    }
+                }
                 Text(word.meaning)
                     .font(.caption)
                     .foregroundStyle(isInMistakes ? accentColor.opacity(0.85) : .secondary)
