@@ -39,7 +39,7 @@ struct CustomModeView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Text("\(selectedIDs.count) 已选")
                         .font(.subheadline)
-                        .foregroundStyle(selectedIDs.isEmpty ? .secondary : .blue)
+                        .foregroundStyle(selectedIDs.isEmpty ? Color.secondary : Color.blue)
                 }
 #endif
             }
