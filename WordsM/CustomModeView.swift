@@ -7,6 +7,7 @@ struct CustomModeView: View {
     @State private var searchText = ""
     @State private var selectedIDs: Set<Int> = []
     @State private var showReview = false
+    
 
     // 保存/加载已选单词 ID
     private let selectedKey = "wordsM_customSelectedIDs"
@@ -44,7 +45,7 @@ struct CustomModeView: View {
 #endif
             }
             .onAppear(perform: loadSelected)
-            .sheet(isPresented: $showReview) {
+            .navigationDestination(isPresented: $showReview) {
                 ReviewView(mode: .custom, manager: manager, selectedIDs: selectedIDs)
             }
         }
