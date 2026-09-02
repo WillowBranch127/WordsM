@@ -1,6 +1,5 @@
 import SwiftUI
 import Combine
-import UIKit
 
 // MARK: - Review Mode
 
@@ -353,8 +352,11 @@ class ReviewViewModel: ObservableObject {
     }
 
     private func triggerHaptic(isCorrect: Bool) {
-        let feedback = isCorrect ? UIImpactFeedbackStyle.light : UIImpactFeedbackStyle.heavy
-        UIHapticFeedbackController.default?.impactOccurred(with: feedback)
+#if os(iOS)
+        let style: UIImpactFeedbackGenerator.FeedbackStyle = isCorrect ? .light : .heavy
+        let generator = UIImpactFeedbackGenerator(style: style)
+        generator.impactOccurred()
+#endif
     }
 }
 
