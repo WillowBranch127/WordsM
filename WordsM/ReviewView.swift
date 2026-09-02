@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import UIKit
 
 // MARK: - Review Mode
 
@@ -282,6 +283,7 @@ class ReviewViewModel: ObservableObject {
             manager.addToMistakes(word.id)
         }
         result = isCorrect ? .correct : .incorrect
+        triggerHaptic(isCorrect: isCorrect)
         if !isCorrect {
             state = .showingAnswer  // 答错时展示正确答案
         } else {
@@ -311,6 +313,7 @@ class ReviewViewModel: ObservableObject {
                 manager.addToMistakes(word.id)
             }
             result = isReasonable ? .correct : .incorrect
+            triggerHaptic(isCorrect: isReasonable)
             state = .result
             isLoadingAI = false
             return
@@ -330,6 +333,7 @@ class ReviewViewModel: ObservableObject {
                 manager.addToMistakes(word.id)
             }
             result = response.isReasonable ? .correct : .incorrect
+            triggerHaptic(isCorrect: response.isReasonable)
             state = .result
         } catch {
             print("[WordsM AI] error: \(error)")
@@ -341,10 +345,16 @@ class ReviewViewModel: ObservableObject {
                 manager.addToMistakes(word.id)
             }
             result = isReasonable ? .correct : .incorrect
+            triggerHaptic(isCorrect: isReasonable)
             state = .result
         }
 
         isLoadingAI = false
+    }
+
+    private func triggerHaptic(isCorrect: Bool) {
+        let feedback = isCorrect ? UIImpactFeedbackStyle.light : UIImpactFeedbackStyle.heavy
+        UIHapticFeedbackController.default?.impactOccurred(with: feedback)
     }
 }
 
