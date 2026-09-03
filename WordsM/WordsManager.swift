@@ -172,6 +172,17 @@ class WordsManager: ObservableObject {
         return SyncMergeResult(addedLearnedCount: addedLearned, addedMistakeCount: addedMistakes)
     }
 
+    // MARK: - Clear All Data
+
+    func clearAllData() {
+        learnedIDs.removeAll()
+        mistakeIDs.removeAll()
+        mistakeCounts.removeAll()
+        saveLearned()
+        saveMistakes()
+        saveMistakeCounts()
+    }
+
     // MARK: - Helpers
 
     func randomUnlearnedWord() -> Word? {

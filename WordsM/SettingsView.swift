@@ -95,6 +95,7 @@ struct SettingsView: View {
     @StateObject private var vm = SettingsViewModel()
     @EnvironmentObject var manager: WordsManager
     @StateObject private var syncManager: LANSyncManager
+    @State private var showClearConfirm = false
 
     init(manager: WordsManager) {
         _syncManager = StateObject(wrappedValue: LANSyncManager(manager: manager))
@@ -225,8 +226,29 @@ struct SettingsView: View {
     }
 }
 
-// MARK: - Preview
+            .confirmationDialog(
+                "确认清空所有数据？",
+                isPresented: $showClearConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("清空", role: .destructive) {
+                    manager.clearAllData()
+                }
+                Button("取消", role: .cancel) {
+                    // do nothing
+                }
+            } message: {
+                Text("这将清除所有已学单词、错题本记录和错误次数，且无法恢复。")
+            }
+        }
+    }
 
-#Preview {
-    SettingsView(manager: WordsManager())
-}
+    private func clearAllData() {
+        manager.clearAllData()
+    }
+
+    // MARK: - Preview
+
+    #Preview {
+        SettingsView(manager: WordsManager())
+    }
