@@ -47,7 +47,7 @@ class SettingsViewModel: ObservableObject {
             guard let httpResponse = response as? HTTPURLResponse,
                   httpResponse.statusCode == 200 else {
                 throw NSError(domain: "FetchModels", code: -1, userInfo: [NSLocalizedDescriptionKey: "请求失败"])
-        }
+            }
 
             // 解析模型列表
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -56,8 +56,8 @@ class SettingsViewModel: ObservableObject {
                 // 如果当前选择的模型不在列表中，清空选择
                 if !selectedModel.isEmpty && !availableModels.contains(selectedModel) {
                     selectedModel = ""
+                }
             }
-        }
         } catch {
             fetchError = "获取模型列表失败: \(error.localizedDescription)"
             availableModels = []
@@ -95,7 +95,6 @@ struct SettingsView: View {
     @StateObject private var vm = SettingsViewModel()
     @EnvironmentObject var manager: WordsManager
     @StateObject private var syncManager: LANSyncManager
-    @State private var showClearConfirm = false
 
     init(manager: WordsManager) {
         _syncManager = StateObject(wrappedValue: LANSyncManager(manager: manager))
@@ -108,13 +107,13 @@ struct SettingsView: View {
                     LabeledContent("Base URL") {
                         TextField("", text: $vm.baseURL)
                             .textContentType(.URL)
-                }
+                    }
 
                     LabeledContent("API Key") {
                         SecureField("", text: $vm.apiKey)
                             .textContentType(.password)
+                    }
                 }
-            }
 
                 Section("模型选择") {
                     HStack {
@@ -126,33 +125,33 @@ struct SettingsView: View {
                                 Text("请选择模型").tag("")
                                 ForEach(vm.availableModels, id: \.self) { model in
                                     Text(model).tag(model)
+                                }
                             }
-                        }
                             .pickerStyle(.menu)
                             .frame(width: 200)
-                    }
+                        }
 
                         Button(action: {
                             Task {
                                 await vm.fetchModels()
-                        }
+                            }
                         }) {
                             if vm.isFetchingModels {
                                 ProgressView()
                             } else {
                                 Text("从 API 获取")
+                            }
                         }
-                    }
                         .buttonStyle(.bordered)
                         .disabled(vm.baseURL.isEmpty || vm.apiKey.isEmpty || vm.isFetchingModels)
-                }
+                    }
 
                     if let error = vm.fetchError {
                         Text(error)
                             .font(.caption)
                             .foregroundStyle(.red)
+                    }
                 }
-            }
 
                 Section("局域网同步") {
                     if syncManager.devices.isEmpty {
@@ -160,7 +159,7 @@ struct SettingsView: View {
                             ProgressView()
                             Text("正在扫描局域网...")
                                 .foregroundStyle(.secondary)
-                    }
+                        }
                     } else {
                         ForEach(syncManager.devices) { device in
                             let state = syncManager.syncStates[device.id] ?? .idle
@@ -169,18 +168,18 @@ struct SettingsView: View {
                                     .foregroundStyle(.primary)
                                 Spacer()
                                 syncButton(for: device, state: state)
+                            }
                         }
                     }
                 }
             }
-        }
             .formStyle(.grouped)
             .onAppear {
                 syncManager.startDiscovery()
-        }
+            }
             .onDisappear {
                 syncManager.stopDiscovery()
-        }
+            }
             .overlay(alignment: .bottom) {
                 if let msg = syncManager.toastMessage {
                     SyncResultToast(message: msg)
@@ -189,8 +188,8 @@ struct SettingsView: View {
                             removal: .move(edge: .bottom).combined(with: .opacity)
                         ))
                         .padding(.horizontal)
+                }
             }
-        }
         }
     }
 
@@ -202,7 +201,7 @@ struct SettingsView: View {
         case .idle:
             Button("同步") {
                 syncManager.sync(with: device.id)
-        }
+            }
             .buttonStyle(.bordered)
 
         case .syncing:
@@ -220,29 +219,14 @@ struct SettingsView: View {
             } label: {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
-        }
+            }
             .help(reason)
         }
     }
-            .confirmationDialog(
-                "确认清空所有数据？",
-                isPresented: $showClearConfirm,
-                titleVisibility: .visible
-            ) {
-                Button("清空", role: .destructive) {
-                    manager.clearAllData()
-            }
-                Button("取消", role: .cancel) {
-                    // do nothing
-            }
-            } message: {
-                Text("这将清除所有已学单词、错题本记录和错误次数，且无法恢复。")
-        }
-        }
-    }
+}
 
-    // MARK: - Preview
+// MARK: - Preview
 
-    #Preview {
-        SettingsView(manager: WordsManager())
-    }
+#Preview {
+    SettingsView(manager: WordsManager())
+}
