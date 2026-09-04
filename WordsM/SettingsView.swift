@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import UniformTypeIdentifiers
 
 // MARK: - Settings View Model
 
@@ -303,7 +304,6 @@ struct SettingsView: View {
             .help(reason)
         }
     }
-}
 
     private func importWords(from url: URL) {
         importError = ""
@@ -331,8 +331,9 @@ struct SettingsView: View {
             importError = "导入失败: \(error.localizedDescription)"
         }
     }
+}
 
-    // MARK: - Preview
+// MARK: - Preview
 
     #Preview {
         SettingsView(manager: WordsManager())
