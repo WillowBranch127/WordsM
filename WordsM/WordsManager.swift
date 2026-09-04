@@ -4,7 +4,7 @@ import Combine
 // MARK: - Word Model
 
 struct Word: Codable, Identifiable {
-    let id: Int
+    var id: Int
     let word: String
     let phonetic: String
     let pos: String
@@ -84,15 +84,44 @@ class WordsManager: ObservableObject {
     }
 
     func importCustomWords(_ newWords: [Word]) {
-        // 合并词库，以用户词库为准（相同 id 覆盖）
-        var existingMap: [Int: Word] = [:]
+        // 获取当前所有词库（内置 + 自定义）的最大 id
+        let allWords = getCombinedWords()
+        let maxId = allWords.map { $0.id }.max() ?? 0
+        
+        // 建立现有自定义词库的映射（按 word 匹配）
+        var existingByWord: [String: Int] = [:]
         for word in customWords {
-            existingMap[word.id] = word
+            existingByWord[word.word.lowercased()] = word.id
         }
+        
+        // 建立结果映射
+        var resultMap: [Int: Word] = [:]
+        
+        // 先加入所有现有的自定义词
+        for word in customWords {
+            resultMap[word.id] = word
+        }
+        
+        // 处理新导入的词
+        var nextId = maxId + 1
         for word in newWords {
-            existingMap[word.id] = word
+            let wordKey = word.word.lowercased()
+            
+            if let existingId = existingByWord[wordKey] {
+                // 如果已有相同单词，保留原 id，更新内容
+                var updatedWord = word
+                updatedWord.id = existingId
+                resultMap[existingId] = updatedWord
+            } else {
+                // 新单词，分配新 id
+                var newWord = word
+                newWord.id = nextId
+                resultMap[nextId] = newWord
+                nextId += 1
+            }
         }
-        customWords = Array(existingMap.values).sorted { $0.id < $1.id }
+        
+        customWords = Array(resultMap.values).sorted { $0.word.lowercased() < $1.word.lowercased() }
         saveCustomWords()
         print("[WordsManager] custom words imported: \(customWords.count) total")
     }
@@ -239,7 +268,7 @@ class WordsManager: ObservableObject {
         for word in customWords {
             map[word.id] = word
         }
-        return Array(map.values).sorted { $0.id < $1.id }
+        return Array(map.values).sorted { $0.word.lowercased() < $1.word.lowercased() }
     }
 
     func randomUnlearnedWord() -> Word? {
