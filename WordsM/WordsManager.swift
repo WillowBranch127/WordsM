@@ -17,6 +17,7 @@ class WordsManager: ObservableObject {
     static let shared = WordsManager()
 
     @Published var words: [Word] = []
+    @Published var customWords: [Word] = []
     @Published var learnedIDs: Set<Int> = []
     @Published var mistakeIDs: Set<Int> = []
     @Published var mistakeCounts: [Int: Int] = [:]  // 记录每个单词的错误次数
@@ -25,6 +26,7 @@ class WordsManager: ObservableObject {
     private let learnedURL: URL
     private let mistakesURL: URL
     private let mistakeCountsURL: URL
+    private let customWordsURL: URL
 
     // MARK: - Init
 
@@ -36,8 +38,10 @@ class WordsManager: ObservableObject {
         self.learnedURL = docs.appendingPathComponent("learned.json")
         self.mistakesURL = docs.appendingPathComponent("mistakes.json")
         self.mistakeCountsURL = docs.appendingPathComponent("mistake_counts.json")
+        self.customWordsURL = docs.appendingPathComponent("custom_words.json")
 
         loadWords()
+        loadCustomWords()
         loadLearned()
         loadMistakes()
         loadMistakeCounts()
@@ -59,6 +63,48 @@ class WordsManager: ObservableObject {
             }
         } catch {
             print("[WordsManager] Failed to load words: \(error)")
+        }
+    }
+
+    func loadCustomWords() {
+        guard let data = try? Data(contentsOf: customWordsURL) else { 
+            customWords = []
+            return 
+        }
+        do {
+            let decoded = try JSONDecoder().decode([Word].self, from: data)
+            print("[WordsManager] custom words loaded: \(decoded.count)")
+            DispatchQueue.main.async {
+                self.customWords = decoded
+            }
+        } catch {
+            print("[WordsManager] Failed to load custom words: \(error)")
+            customWords = []
+        }
+    }
+
+    func importCustomWords(_ newWords: [Word]) {
+        // 合并词库，以用户词库为准（相同 id 覆盖）
+        var existingMap: [Int: Word] = [:]
+        for word in customWords {
+            existingMap[word.id] = word
+        }
+        for word in newWords {
+            existingMap[word.id] = word
+        }
+        customWords = Array(existingMap.values).sorted { $0.id < $1.id }
+        saveCustomWords()
+        print("[WordsManager] custom words imported: \(customWords.count) total")
+    }
+
+    func saveCustomWords() {
+        do {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.sortedKeys, .prettyPrinted]
+            let data = try encoder.encode(customWords)
+            try data.write(to: customWordsURL)
+        } catch {
+            print("[WordsManager] Save custom words failed: \(error)")
         }
     }
 
@@ -185,20 +231,32 @@ class WordsManager: ObservableObject {
 
     // MARK: - Helpers
 
+    func getCombinedWords() -> [Word] {
+        var map: [Int: Word] = [:]
+        for word in words {
+            map[word.id] = word
+        }
+        for word in customWords {
+            map[word.id] = word
+        }
+        return Array(map.values).sorted { $0.id < $1.id }
+    }
+
     func randomUnlearnedWord() -> Word? {
-        let remaining = words.filter { !learnedIDs.contains($0.id) }
+        let combined = getCombinedWords()
+        let remaining = combined.filter { !learnedIDs.contains($0.id) }
         guard !remaining.isEmpty else { return nil }
         return remaining.randomElement()
     }
 
     func randomLearnedWord() -> Word? {
         guard let id = learnedIDs.sorted().randomElement() else { return nil }
-        return words.first { $0.id == id }
+        return getCombinedWords().first { $0.id == id }
     }
 
     func randomMistakeWord() -> Word? {
         guard let id = mistakeIDs.sorted().randomElement() else { return nil }
-        return words.first { $0.id == id }
+        return getCombinedWords().first { $0.id == id }
     }
 
     private func save(_ array: [Int], to url: URL) {

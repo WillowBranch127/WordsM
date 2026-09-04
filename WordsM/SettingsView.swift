@@ -95,6 +95,9 @@ struct SettingsView: View {
     @StateObject private var vm = SettingsViewModel()
     @EnvironmentObject var manager: WordsManager
     @StateObject private var syncManager: LANSyncManager
+    @State private var showClearConfirm = false
+    @State private var fileImporterShown = false
+    @State private var importError = ""
 
     init(manager: WordsManager) {
         _syncManager = StateObject(wrappedValue: LANSyncManager(manager: manager))
@@ -172,8 +175,85 @@ struct SettingsView: View {
                         }
                     }
                 }
+
+                Section("数据管理") {
+                    Button(role: .destructive) {
+                        showClearConfirm = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "trash.fill")
+                            Text("清空所有数据")
+                            Spacer()
+                            Text("将清除已学单词、错题本和错误次数记录")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+
+                Section("词库管理") {
+                    Button {
+                        fileImporterShown = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "square.and.arrow.up")
+                            Text("导入自定义词库")
+                            Spacer()
+                            Text("JSON 格式，id 不能与内置词库重复")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .fileImporter(
+                        isPresented: $fileImporterShown,
+                        allowedContentTypes: [.json],
+                        allowsMultipleSelection: false
+                    ) { result in
+                        switch result {
+                        case .success(let urls):
+                            if let url = urls.first {
+                                importWords(from: url)
+                            }
+                        case .failure(let error):
+                            importError = "导入失败: \(error.localizedDescription)"
+                        }
+                    }
+                    
+                    if !importError.isEmpty {
+                        Text(importError)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                    
+                    if manager.customWords.count > 0 {
+                        HStack {
+                            Text("自定义词库: \(manager.customWords.count) 词")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Button("清除", role: .destructive) {
+                                manager.customWords.removeAll()
+                                manager.saveCustomWords()
+                            }
+                        }
+                    }
+                }
             }
             .formStyle(.grouped)
+            .confirmationDialog(
+                "确认清空所有数据？",
+                isPresented: $showClearConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("清空", role: .destructive) {
+                    manager.clearAllData()
+                }
+                Button("取消", role: .cancel) {
+                    // do nothing
+                }
+            } message: {
+                Text("这将清除所有已学单词、错题本记录和错误次数，且无法恢复。")
+            }
             .onAppear {
                 syncManager.startDiscovery()
             }
@@ -225,8 +305,35 @@ struct SettingsView: View {
     }
 }
 
-// MARK: - Preview
+    private func importWords(from url: URL) {
+        importError = ""
+        do {
+            let data = try Data(contentsOf: url)
+            let words = try JSONDecoder().decode([Word].self, from: data)
+            
+            // 验证 word 字段不为空
+            let validWords = words.filter { !$0.word.isEmpty }
+            
+            if validWords.count != words.count {
+                importError = "已过滤掉 \(words.count - validWords.count) 个无效词条（word 字段为空）"
+            }
+            
+            manager.importCustomWords(validWords)
+            
+            // 检查 id 重复
+            let combinedIds = Set(manager.words.map { $0.id })
+            let customIds = Set(manager.customWords.map { $0.id })
+            let overlap = combinedIds.intersection(customIds)
+            if !overlap.isEmpty {
+                importError = "警告: \(overlap.count) 个 id 与内置词库重复，已覆盖"
+            }
+        } catch {
+            importError = "导入失败: \(error.localizedDescription)"
+        }
+    }
 
-#Preview {
-    SettingsView(manager: WordsManager())
-}
+    // MARK: - Preview
+
+    #Preview {
+        SettingsView(manager: WordsManager())
+    }
