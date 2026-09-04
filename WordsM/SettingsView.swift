@@ -200,7 +200,7 @@ struct SettingsView: View {
                             Image(systemName: "square.and.arrow.up")
                             Text("导入自定义词库")
                             Spacer()
-                            Text("JSON 格式，id 不能与内置词库重复")
+                            Text("JSON 格式，只需提供 word/phonetic/pos/meaning")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -316,16 +316,17 @@ struct SettingsView: View {
             
             if validWords.count != words.count {
                 importError = "已过滤掉 \(words.count - validWords.count) 个无效词条（word 字段为空）"
+                return
             }
             
+            let beforeCount = manager.customWords.count
             manager.importCustomWords(validWords)
+            let afterCount = manager.customWords.count
             
-            // 检查 id 重复
-            let combinedIds = Set(manager.words.map { $0.id })
-            let customIds = Set(manager.customWords.map { $0.id })
-            let overlap = combinedIds.intersection(customIds)
-            if !overlap.isEmpty {
-                importError = "警告: \(overlap.count) 个 id 与内置词库重复，已覆盖"
+            if afterCount == beforeCount {
+                importError = "所有单词已在词库中，无新增"
+            } else {
+                importError = "成功导入 \(afterCount - beforeCount) 个新单词"
             }
         } catch {
             importError = "导入失败: \(error.localizedDescription)"
