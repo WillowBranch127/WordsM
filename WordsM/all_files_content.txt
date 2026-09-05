@@ -1,0 +1,2407 @@
+
+================================================================================
+FILE: ContentView.swift
+================================================================================
+
+import SwiftUI
+import Combine
+
+// MARK: - Main Content View
+
+struct ContentView: View {
+    @EnvironmentObject var manager: WordsManager
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                VStack(spacing: 8) {
+                    Text("WordsM")
+                        .font(.system(size: 32, weight: .bold))
+                        .foregroundStyle(.primary)
+                    Text("辅助背单词")
+                        .font(.system(size: 15))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.top, 48)
+                .padding(.bottom, 36)
+
+                VStack(spacing: 16) {
+                    CustomNavLink(destination: ExploreView()) {
+                        ActionButton(icon: "magnifyingglass", title: "探索模式", subtitle: "随机浏览新单词")
+                    }
+
+                    CustomNavLink(destination: ReviewView(mode: .learned, manager: manager)) {
+                        ActionButton(icon: "arrow.triangle.2.circlepath", title: "复习模式", subtitle: "主动回忆已学单词")
+                    }
+
+                    CustomNavLink(destination: ReviewView(mode: .mistakes, manager: manager)) {
+                        ActionButton(icon: "book.fill", title: "错题本", subtitle: "\(manager.mistakeIDs.count) 个待复习")
+                    }
+                }
+                .padding(.horizontal, 40)
+
+                Spacer()
+
+                HStack {
+                    StatChip(icon: "checkmark.circle", label: "已学", value: "\(manager.learnedIDs.count)")
+                    Spacer()
+                    StatChip(icon: "xmark.circle", label: "错题", value: "\(manager.mistakeIDs.count)")
+                }
+                .font(.system(size: 13))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 40)
+                .padding(.bottom, 32)
+            }
+#if !os(iOS)
+            .frame(minWidth: 440, maxWidth: 520, minHeight: 480, maxHeight: 560)
+#endif
+#if os(iOS)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    NavigationLink {
+                        SettingsView(manager: manager)
+                            .environmentObject(manager)
+                    } label: {
+                        Image(systemName: "gearshape")
+                    }
+                }
+            }
+#endif
+        }
+    }
+}
+
+// MARK: - Custom Nav Link
+
+struct CustomNavLink<Destination: View, Label: View>: View {
+    let destinationBuilder: () -> Destination
+    let labelBuilder: () -> Label
+
+    init(destination: @autoclosure @escaping () -> Destination, @ViewBuilder label: @escaping () -> Label) {
+        self.destinationBuilder = destination
+        self.labelBuilder = label
+    }
+
+    var body: some View {
+        NavigationLink(destination: destinationBuilder(), label: labelBuilder)
+    }
+}
+
+// MARK: - Action Button
+
+struct ActionButton: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: icon)
+                .font(.system(size: 20))
+                .foregroundStyle(.white)
+                .frame(width: 44, height: 44)
+                .background(Color.blue)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.primary)
+                Text(subtitle)
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .background(Color.secondary.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.06), radius: 4, y: 2)
+        .buttonStyle(.plain)
+    }
+
+}
+
+// MARK: - Stat Chip
+
+struct StatChip: View {
+    let icon: String
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon)
+            Text("\(label) \(value)")
+        }
+    }
+}
+
+// MARK: - Preview
+
+#Preview {
+    ContentView()
+        .environmentObject(WordsManager())
+}
+
+
+================================================================================
+FILE: ExploreView.swift
+================================================================================
+
+import SwiftUI
+import Combine
+
+// MARK: - Explore Mode
+
+struct ExploreView: View {
+    @EnvironmentObject var manager: WordsManager
+    @State private var currentWord: Word?
+
+    var body: some View {
+        VStack {
+            if let word = currentWord {
+                VStack(spacing: 12) {
+                    Text(word.word)
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.5)
+                        .multilineTextAlignment(.center)
+                    Text(word.phonetic)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Text(word.pos)
+                        .font(.caption)
+                        .foregroundStyle(.blue)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color.blue.opacity(0.1))
+                        .clipShape(Capsule())
+                    Text(word.meaning)
+                        .font(.body)
+                        .foregroundStyle(.primary)
+                        .multilineTextAlignment(.center)
+                        .padding(.top, 4)
+                }
+                .padding()
+
+                Spacer()
+
+                Button("记住了，下一个") {
+                    guard let w = currentWord else { return }
+                    manager.markAsLearned(w.id)
+                    loadNext()
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 40)
+            } else {
+                VStack(spacing: 12) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 48))
+                        .foregroundStyle(.green)
+                    Text("所有单词已学完！")
+                        .font(.title2)
+                    Text("你可以开始复习或查看错题本。")
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding(.bottom, 24)
+        .onAppear { loadNext() }
+    }
+
+    private func loadNext() {
+        currentWord = manager.randomUnlearnedWord()
+    }
+}
+
+// MARK: - Preview
+
+#Preview {
+    ExploreView()
+        .environmentObject(WordsManager())
+}
+
+
+================================================================================
+FILE: LANSyncBrowser.swift
+================================================================================
+
+import Foundation
+import Network
+
+// MARK: - LANSyncBrowser
+
+/// Discovers remote WordsM devices using NWBrowser.
+/// Discovery runs only while the browser is active (SettingsView lifetime).
+final class LANSyncBrowser {
+    private var browser: NWBrowser?
+    var localDeviceID: UUID?
+
+    var onDeviceAdded: ((DiscoveredDevice) -> Void)?
+    var onDeviceRemoved: ((UUID) -> Void)?
+
+    func start() {
+        guard browser == nil else { return }
+
+        do {
+            browser = try NWBrowser(
+                for: .bonjourWithTXTRecord(type: LANSyncConstants.serviceType, domain: nil),
+                using: NWParameters()
+            )
+        } catch {
+            print("[LANSyncBrowser] Failed to create browser: \(error)")
+            return
+        }
+
+        browser?.stateUpdateHandler = { [weak self] state in
+            guard let self = self else { return }
+            switch state {
+            case .ready:
+                print("[LANSyncBrowser] Browser ready")
+            case .failed:
+                print("[LANSyncBrowser] Browser failed")
+            case .cancelled:
+                break
+            default:
+                break
+            }
+        }
+
+        browser?.browseResultsChangedHandler = { [weak self] newResults, changes in
+            guard let self = self else { return }
+            for change in changes {
+                switch change {
+                case .added(let result):
+                    Task { @MainActor [weak self] in
+                        self?.handleDeviceAdded(result: result)
+                    }
+                case .removed(let result):
+                    Task { @MainActor [weak self] in
+                        self?.handleDeviceRemoved(result: result)
+                    }
+                default:
+                    break
+                }
+            }
+        }
+
+        browser?.start(queue: .main)
+    }
+
+    func stop() {
+        browser?.cancel()
+        browser = nil
+    }
+
+    // MARK: - Device Parsing
+
+    private func parseDevice(from result: NWBrowser.Result) -> DiscoveredDevice? {
+        let deviceIDStr: String?
+        let name: String
+
+        if case .bonjour(let txtRecord) = result.metadata {
+            deviceIDStr = txtRecord.dictionary["deviceID"]
+            name = txtRecord.dictionary["name"] ?? endpointHostString(result.endpoint)
+        } else {
+            deviceIDStr = nil
+            name = endpointHostString(result.endpoint)
+        }
+
+        guard let idStr = deviceIDStr, let id = UUID(uuidString: idStr) else { return nil }
+        // Skip self
+        if let myID = localDeviceID, id == myID { return nil }
+        return DiscoveredDevice(id: id, name: name, endpoint: result.endpoint)
+    }
+
+    private func endpointHostString(_ endpoint: NWEndpoint) -> String {
+        switch endpoint {
+        case .hostPort(let host, _):
+            switch host {
+            case .name(let name, _): return name
+            case .ipv4(let addr): return addr.debugDescription
+            case .ipv6(let addr): return addr.debugDescription
+            @unknown default: return "unknown"
+            }
+        case .service(let name, _, _, _): return name
+        case .unix(let path): return path
+        case .url(let url): return url.host ?? url.absoluteString
+        @unknown default: return "unknown"
+        }
+    }
+
+    private func handleDeviceAdded(result: NWBrowser.Result) {
+        guard let device = parseDevice(from: result) else { return }
+        onDeviceAdded?(device)
+    }
+
+    private func handleDeviceRemoved(result: NWBrowser.Result) {
+        guard let device = parseDevice(from: result) else { return }
+        onDeviceRemoved?(device.id)
+    }
+}
+
+
+================================================================================
+FILE: LANSyncConstants.swift
+================================================================================
+
+import Foundation
+
+// MARK: - LANSyncConstants
+
+enum LANSyncConstants {
+    /// Bonjour service type published and discovered across the LAN.
+    static let serviceType = "_wordsm-sync._tcp"
+    static let serviceDomain = "local."
+
+    /// UserDefaults key for the persistent local device UUID.
+    static let deviceIDKey = "wordsM_deviceID"
+
+    /// Timeout for a complete sync session (connect → hello → payload → ack).
+    static let sessionTimeout: TimeInterval = 10
+
+    /// Maximum allowed message body size (1 MB).
+    static let maximumMessageSize = 1_048_576
+
+    /// Duration the success Snackbar is shown before auto-hiding.
+    static let resultToastDuration: TimeInterval = 3
+}
+
+
+================================================================================
+FILE: LANSyncManager.swift
+================================================================================
+
+import Foundation
+import Network
+import SwiftUI
+import Combine
+
+// MARK: - LANSyncManager
+
+@MainActor
+final class LANSyncManager: ObservableObject {
+    @Published private(set) var devices: [DiscoveredDevice] = []
+    @Published private(set) var syncStates: [UUID: SyncUIState] = [:]
+    @Published private(set) var toastMessage: String?
+    @Published private(set) var toastResult: SyncMergeResult?
+
+    private let service = LANSyncService()
+    private let browser = LANSyncBrowser()
+    private let manager: WordsManager
+
+    /// The persistent local device UUID.
+    private var localDeviceID: UUID {
+        let key = LANSyncConstants.deviceIDKey
+        if let raw = UserDefaults.standard.string(forKey: key),
+           let uuid = UUID(uuidString: raw) {
+            return uuid
+        }
+        let newID = UUID()
+        UserDefaults.standard.set(newID.uuidString, forKey: key)
+        return newID
+    }
+
+    /// Display name derived from the system.
+    private var localDeviceName: String {
+#if os(iOS)
+        return UIDevice.current.name
+#else
+        return ProcessInfo.processInfo.hostName
+#endif
+    }
+
+    init(manager: WordsManager) {
+        self.manager = manager
+        setupService()
+    }
+
+    // MARK: - Discovery
+
+    func startDiscovery() {
+        browser.localDeviceID = localDeviceID
+        browser.onDeviceAdded = { [weak self] device in
+            guard let self = self else { return }
+            // Skip self
+            guard device.id != self.localDeviceID else { return }
+            if self.devices.contains(where: { $0.id == device.id }) {
+                if let idx = self.devices.firstIndex(where: { $0.id == device.id }) {
+                    self.devices[idx] = device
+                }
+            } else {
+                self.devices.append(device)
+            }
+        }
+        browser.onDeviceRemoved = { [weak self] id in
+            self?.devices.removeAll { $0.id == id }
+        }
+        browser.start()
+    }
+
+    func stopDiscovery() {
+        browser.stop()
+        devices.removeAll()
+    }
+
+    // MARK: - Sync
+
+    func sync(with deviceID: UUID) {
+        guard let device = devices.first(where: { $0.id == deviceID }) else { return }
+        syncStates[deviceID] = .syncing
+
+        // Create session on background and run async sync
+        // Resolve endpoint: convert .service to .hostPort for reliable connection
+        let resolvedEndpoint = resolveEndpoint(device.endpoint) ?? device.endpoint
+        let session = LANSyncSession(
+            connection: NWConnection(to: resolvedEndpoint, using: .tcp),
+            localDeviceID: localDeviceID,
+            localDeviceName: localDeviceName,
+            manager: manager
+        )
+        Task {
+            await performSync(session: session, deviceID: deviceID)
+        }
+    }
+
+    /// Resolves a Bonjour service endpoint to a connectable hostPort endpoint.
+    private func resolveEndpoint(_ endpoint: NWEndpoint) -> NWEndpoint? {
+        switch endpoint {
+        case .hostPort(let host, let port):
+            return .hostPort(host: host, port: port)
+        case .service(let name, let type, let domain, let _):
+            // Convert service endpoint to hostPort for reliable connection
+            let host: NWEndpoint.Host = .init(name) ?? .init("localhost")
+            return .hostPort(host: host, port: .any)
+        default:
+            return nil
+        }
+    }
+
+    private func performSync(session: LANSyncSession, deviceID: UUID) async {
+        await session.start()
+
+        let result = await session.result
+        let error = await session.errorMessage
+
+        if let err = error {
+            print("[LANSyncManager] Sync failed: \(err)")
+            syncStates[deviceID] = .failed(err)
+        } else if let res = result {
+            print("[LANSyncManager] Sync succeeded, addedLearned=\(res.addedLearnedCount), addedMistakes=\(res.addedMistakeCount)")
+            syncStates[deviceID] = .success
+            toastResult = res
+            toastMessage = "✓ 同步完成\n新增已学 \(res.addedLearnedCount) 个 · 新增错题 \(res.addedMistakeCount) 个"
+            DispatchQueue.main.asyncAfter(deadline: .now() + LANSyncConstants.resultToastDuration) { [weak self] in
+                self?.toastMessage = nil
+                self?.toastResult = nil
+            }
+        } else {
+            syncStates[deviceID] = .failed("同步未知错误")
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+            self?.syncStates[deviceID] = .idle
+        }
+    }
+
+    // MARK: - Service Setup
+
+    private func setupService() {
+        service.incomingConnectionHandler = { [weak self] conn in
+            guard let self = self else { return }
+            let session = LANSyncSession(
+                connection: conn,
+                localDeviceID: self.localDeviceID,
+                localDeviceName: self.localDeviceName,
+                manager: self.manager
+            )
+            Task {
+                await session.start()
+            }
+        }
+        service.start()
+    }
+}
+
+
+================================================================================
+FILE: LANSyncModels.swift
+================================================================================
+
+import Foundation
+import Network
+
+// MARK: - DiscoveredDevice
+
+/// Represents a remote WordsM device discovered via Bonjour.
+/// Uses a class so NWEndpoint does not need to conform to Sendable/Hashable.
+final class DiscoveredDevice: Identifiable, Equatable {
+    let id: UUID
+    let name: String
+    let endpoint: NWEndpoint
+
+    init(id: UUID, name: String, endpoint: NWEndpoint) {
+        self.id = id
+        self.name = name
+        self.endpoint = endpoint
+    }
+
+    static func == (lhs: DiscoveredDevice, rhs: DiscoveredDevice) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+}
+
+// MARK: - SyncUIState
+
+/// Lightweight UI state for a single sync session with a device.
+enum SyncUIState: Equatable {
+    case idle
+    case syncing
+    case success
+    case failed(String)
+}
+
+// MARK: - SyncMergeResult
+
+struct SyncMergeResult {
+    let addedLearnedCount: Int
+    let addedMistakeCount: Int
+}
+
+// MARK: - LANSyncMessageTypes
+
+enum SyncMessageType: String, Codable {
+    case hello
+    case payload
+    case payloadAck
+    case complete
+    case error
+}
+
+struct SyncHello: Codable {
+    let protocolVersion: Int
+    let deviceID: UUID
+    let deviceName: String
+}
+
+struct SyncPayloadEnvelope: Codable {
+    let protocolVersion: Int
+    let deviceID: UUID
+    let learnedIDs: [Int]
+    let mistakeIDs: [Int]
+}
+
+// Helper envelope that wraps type + payload data
+struct SyncMessageEnvelope: Codable {
+    let type: SyncMessageType
+    let data: Data?
+}
+
+
+================================================================================
+FILE: LANSyncService.swift
+================================================================================
+
+import Foundation
+import Network
+
+// MARK: - LANSyncService
+
+/// Manages the inbound Bonjour service so this device is always discoverable
+/// as long as the app runs.
+final class LANSyncService {
+    private var listener: NWListener?
+    private let serviceType = LANSyncConstants.serviceType
+
+    /// Closure called when a new inbound connection arrives.
+    /// This is called on an arbitrary background queue; callers should dispatch to main.
+    var incomingConnectionHandler: ((NWConnection) -> Void)?
+
+    init() {}
+
+    func start() {
+        // Build TXT record with our device ID and name
+        var txt = NWTXTRecord()
+        txt.setEntry(.string(localDeviceID.uuidString), for: "deviceID")
+        txt.setEntry(.string(localDeviceName), for: "name")
+
+        let service = NWListener.Service(
+            name: nil,
+            type: serviceType,
+            domain: nil,  // nil = use default domain, works across platforms
+            txtRecord: txt
+        )
+
+        do {
+            listener = try NWListener(service: service, using: NWParameters.tcp)
+        } catch {
+            print("[LANSyncService] Failed to create listener: \(error)")
+            return
+        }
+        guard let listener = listener else { return }
+
+        listener.stateUpdateHandler = { [weak self] state in
+            guard let self = self else { return }
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                switch state {
+                case .ready:
+                    print("[LANSyncService] Listener ready on \(self.serviceType)")
+                case .failed:
+                    print("[LANSyncService] Listener failed")
+                    self.listener?.cancel()
+                    self.listener = nil
+                case .cancelled:
+                    break
+                default:
+                    break
+                }
+            }
+        }
+
+        listener.newConnectionHandler = { [weak self] conn in
+            Task { @MainActor [weak self] in
+                self?.incomingConnectionHandler?(conn)
+            }
+        }
+
+        listener.start(queue: .main)
+    }
+
+    func stop() {
+        listener?.cancel()
+        listener = nil
+    }
+
+    // MARK: - Local Identity
+
+    private var localDeviceID: UUID {
+        let key = LANSyncConstants.deviceIDKey
+        if let raw = UserDefaults.standard.string(forKey: key),
+           let uuid = UUID(uuidString: raw) {
+            return uuid
+        }
+        let newID = UUID()
+        UserDefaults.standard.set(newID.uuidString, forKey: key)
+        return newID
+    }
+
+    private var localDeviceName: String {
+        return ProcessInfo.processInfo.hostName
+    }
+}
+
+
+================================================================================
+FILE: LANSyncSession.swift
+================================================================================
+
+import Foundation
+import Network
+
+// MARK: - LANSyncSession
+
+/// Handles a single sync TCP session with a remote device.
+/// Implements length-prefix framing (4-byte big-endian body length + complete envelope),
+/// hello handshake, payload exchange, union merge, and ack.
+final class LANSyncSession {
+    private let connection: NWConnection
+    private let localDeviceID: UUID
+    private let localDeviceName: String
+    private let manager: WordsManager
+    private let timeout: TimeInterval
+
+    @MainActor var result: SyncMergeResult? = nil
+    @MainActor var errorMessage: String? = nil
+
+    init(
+        connection: NWConnection,
+        localDeviceID: UUID,
+        localDeviceName: String,
+        manager: WordsManager,
+        timeout: TimeInterval = LANSyncConstants.sessionTimeout
+    ) {
+        self.connection = connection
+        self.localDeviceID = localDeviceID
+        self.localDeviceName = localDeviceName
+        self.manager = manager
+        self.timeout = timeout
+    }
+
+    func start() async {
+        print("[LANSyncSession] Starting connection")
+        connection.start(queue: .global(qos: .userInitiated))
+
+        do {
+            try await runSessionWithTimeout()
+            await MainActor.run {
+                self.result = SyncMergeResult(addedLearnedCount: 0, addedMistakeCount: 0)
+            }
+        } catch LANSyncError.timeout {
+            print("[LANSyncSession] Session timeout after \(timeout)s")
+            await MainActor.run {
+                self.errorMessage = "同步超时"
+            }
+        } catch {
+            print("[LANSyncSession] Session error: \(error)")
+            await MainActor.run {
+                self.errorMessage = error.localizedDescription
+            }
+        }
+
+        connection.cancel()
+        print("[LANSyncSession] Connection closed")
+    }
+
+    // MARK: - Timeout wrapper
+
+    /// Wraps the session in a timeout. If the session does not complete within `timeout` seconds,
+    /// throws LANSyncError.timeout.
+    private func runSessionWithTimeout() async throws {
+        enum Phase { case sessionDone, timeout }
+        var phase: Phase? = nil
+
+        let sessionTask = Task {
+            defer { phase = .sessionDone }
+            return try await runSession()
+        }
+        let timeoutTask = Task {
+            try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+            phase = .timeout
+        }
+
+        // Wait for session to finish, but cancel if timeout fires first
+        while phase == nil {
+            if sessionTask.isCancelled { throw LANSyncError.timeout }
+            try? await Task.sleep(nanoseconds: 50_000_000)
+        }
+
+        timeoutTask.cancel()
+
+        if phase == .timeout {
+            sessionTask.cancel()
+            throw LANSyncError.timeout
+        }
+
+        try await sessionTask.value
+    }
+
+    // MARK: - Session Flow
+
+    private func runSession() async throws {
+        // Phase 1: Hello exchange
+        print("[LANSyncSession] Sending hello")
+        try await sendEnvelope(.hello, data: try JSONEncoder().encode(SyncHello(
+            protocolVersion: 1,
+            deviceID: localDeviceID,
+            deviceName: localDeviceName
+        )))
+        print("[LANSyncSession] Hello sent")
+
+        print("[LANSyncSession] Waiting for remote hello")
+        let remoteHelloMsg = try await receiveEnvelope()
+        guard remoteHelloMsg.type == .hello else {
+            throw LANSyncError.invalidMessageOrder(expected: .hello, got: remoteHelloMsg.type)
+        }
+        guard let helloData = remoteHelloMsg.data else {
+            throw LANSyncError.helloDecodeFailed
+        }
+        let remoteHello = try JSONDecoder().decode(SyncHello.self, from: helloData)
+        print("[LANSyncSession] Remote hello received: \(remoteHello.deviceName) (\(remoteHello.deviceID))")
+
+        guard remoteHello.protocolVersion == 1 else {
+            throw LANSyncError.protocolVersionMismatch(remoteVersion: remoteHello.protocolVersion)
+        }
+
+        // Phase 2: Send our payload
+        print("[LANSyncSession] Sending payload")
+        let localLearned = Array(manager.learnedIDs).sorted()
+        let localMistakes = Array(manager.mistakeIDs).sorted()
+        try await sendEnvelope(.payload, data: try JSONEncoder().encode(SyncPayloadEnvelope(
+            protocolVersion: 1,
+            deviceID: localDeviceID,
+            learnedIDs: localLearned,
+            mistakeIDs: localMistakes
+        )))
+        print("[LANSyncSession] Payload sent")
+
+        // Phase 3: Receive remote payload
+        print("[LANSyncSession] Waiting for remote payload")
+        let payloadMsg = try await receiveEnvelope()
+        guard payloadMsg.type == .payload else {
+            throw LANSyncError.invalidMessageOrder(expected: .payload, got: payloadMsg.type)
+        }
+        guard let payloadData = payloadMsg.data else {
+            throw LANSyncError.payloadDecodeFailed
+        }
+        let remotePayload = try JSONDecoder().decode(SyncPayloadEnvelope.self, from: payloadData)
+        print("[LANSyncSession] Remote payload received: learned=\(remotePayload.learnedIDs.count) mistakes=\(remotePayload.mistakeIDs.count)")
+
+        // Phase 4: Send ack for remote payload
+        print("[LANSyncSession] Sending payload ACK")
+        try await sendEnvelope(.payloadAck, data: nil)
+        print("[LANSyncSession] Payload ACK sent")
+
+        // Phase 5: Receive ack for our payload
+        print("[LANSyncSession] Waiting for remote payload ACK")
+        let ackMsg = try await receiveEnvelope()
+        guard ackMsg.type == .payloadAck else {
+            throw LANSyncError.invalidMessageOrder(expected: .payloadAck, got: ackMsg.type)
+        }
+        print("[LANSyncSession] Remote payload ACK received")
+
+        // Phase 6: Compute union and merge
+        print("[LANSyncSession] Merging data")
+        let remoteLearned = Set(remotePayload.learnedIDs)
+        let remoteMistakes = Set(remotePayload.mistakeIDs)
+        let oldLearned = manager.learnedIDs
+        let oldMistakes = manager.mistakeIDs
+        let mergedLearned = oldLearned.union(remoteLearned)
+        let mergedMistakes = oldMistakes.union(remoteMistakes)
+        let addedLearned = mergedLearned.subtracting(oldLearned).count
+        let addedMistakes = mergedMistakes.subtracting(oldMistakes).count
+
+        manager.mergeSyncedData(remoteLearnedIDs: remoteLearned, remoteMistakeIDs: remoteMistakes)
+        print("[LANSyncSession] Merge completed: learned +\(addedLearned), mistakes +\(addedMistakes)")
+
+        await MainActor.run {
+            self.result = SyncMergeResult(addedLearnedCount: addedLearned, addedMistakeCount: addedMistakes)
+        }
+
+        // Phase 7: Send complete
+        print("[LANSyncSession] Sending complete")
+        try await sendEnvelope(.complete, data: nil)
+        print("[LANSyncSession] Sync completed successfully")
+    }
+
+    // MARK: - Framing: Send
+
+    /// Send a complete message: 4-byte big-endian body length + encoded SyncMessageEnvelope.
+    private func sendEnvelope(_ type: SyncMessageType, data: Data?) async throws {
+        let envelope = SyncMessageEnvelope(type: type, data: data)
+        let body = try JSONEncoder().encode(envelope)
+        guard body.count <= LANSyncConstants.maximumMessageSize else {
+            throw LANSyncError.messageTooLarge
+        }
+        var length = UInt32(body.count).bigEndian
+        let lengthData = Data(bytes: &length, count: MemoryLayout<UInt32>.size)
+        try await sendRaw(lengthData)
+        try await sendRaw(body)
+    }
+
+    /// Send raw bytes via NWConnection completion API, wrapped in async.
+    private func sendRaw(_ data: Data) async throws {
+        let semaphore = DispatchSemaphore(value: 0)
+        var error: Error? = nil
+        connection.send(content: data, isComplete: false, completion: .contentProcessed { err in
+            error = err
+            semaphore.signal()
+        })
+        try await waitFor(semaphore)
+        if let e = error { throw e }
+    }
+
+    // MARK: - Framing: Receive
+
+    /// Receive a complete envelope: read 4-byte length, then read exactly that many bytes, decode.
+    private func receiveEnvelope() async throws -> SyncMessageEnvelope {
+        let lengthData = try await receiveExactly(4)
+        let len = lengthData.withUnsafeBytes { $0.load(as: UInt32.self) }
+        guard len > 0, len <= UInt32(LANSyncConstants.maximumMessageSize) else {
+            throw LANSyncError.framingError
+        }
+        let body = try await receiveExactly(Int(len))
+        do {
+            return try JSONDecoder().decode(SyncMessageEnvelope.self, from: body)
+        } catch {
+            throw LANSyncError.framingError
+        }
+    }
+
+    /// Receive exactly `count` bytes, handling partial TCP reads.
+    private func receiveExactly(_ count: Int) async throws -> Data {
+        guard count > 0 else { return Data() }
+        var accumulated = Data()
+        while accumulated.count < count {
+            let remaining = count - accumulated.count
+            let semaphore = DispatchSemaphore(value: 0)
+            var chunk: Data? = nil
+            var isComplete = false
+            var error: Error? = nil
+
+            connection.receive(minimumIncompleteLength: 1, maximumLength: remaining) { data, ctx, complete, err in
+                chunk = data
+                isComplete = complete
+                error = err
+                semaphore.signal()
+            }
+            try await waitFor(semaphore)
+
+            if let e = error { throw e }
+            if let d = chunk { accumulated.append(d) }
+            if isComplete && accumulated.count < count {
+                throw LANSyncError.connectionClosedUnexpectedly
+            }
+        }
+        return accumulated
+    }
+
+    /// Wait for a semaphore without blocking the Swift concurrency worker thread.
+    /// Runs the wait on a background DispatchQueue to avoid blocking the actor.
+    private func waitFor(_ semaphore: DispatchSemaphore) async throws {
+        try await withCheckedThrowingContinuation { cont in
+            DispatchQueue.global(qos: .userInitiated).async {
+                semaphore.wait()
+                DispatchQueue.main.async {
+                    cont.resume()
+                }
+            }
+        }
+    }
+}
+
+// MARK: - LANSyncError
+
+enum LANSyncError: LocalizedError {
+    case framingError
+    case messageTooLarge
+    case connectionClosedUnexpectedly
+    case helloDecodeFailed
+    case payloadDecodeFailed
+    case invalidMessageOrder(expected: SyncMessageType, got: SyncMessageType)
+    case protocolVersionMismatch(remoteVersion: Int)
+    case timeout
+
+    var errorDescription: String? {
+        switch self {
+        case .framingError: return "消息帧格式错误"
+        case .messageTooLarge: return "消息过大"
+        case .connectionClosedUnexpectedly: return "连接意外关闭"
+        case .helloDecodeFailed: return "无法解析对方 Hello 消息"
+        case .payloadDecodeFailed: return "无法解析对方 Payload 消息"
+        case .invalidMessageOrder(let expected, let got):
+            return "消息顺序错误：期望 \(expected.rawValue)，收到 \(got.rawValue)"
+        case .protocolVersionMismatch(let version):
+            return "协议版本不兼容：远端版本 \(version)"
+        case .timeout: return "同步超时"
+        }
+    }
+}
+
+
+================================================================================
+FILE: ReviewView.swift
+================================================================================
+
+import SwiftUI
+import Combine
+
+// MARK: - Review Mode
+
+enum ReviewMode {
+    case learned
+    case mistakes
+}
+
+// MARK: - Quiz Direction
+
+enum QuizDirection {
+    case cnToEn   // 看中文写英文
+    case enToCn   // 看英文写中文
+}
+
+// MARK: - Quiz State
+
+enum QuizState {
+    case idle           // 显示题目，等待输入
+    case showingAnswer  // 点击"不知道"后展示完整信息
+    case checking       // 提交答案，正在验证
+    case result         // 显示对错结果
+    case done           // 该题结束，等待"下一个"
+}
+
+// MARK: - Quiz Result
+
+enum QuizResult {
+    case correct
+    case incorrect
+    case skipped
+}
+
+
+
+// MARK: - Mistake Cycle Phase
+// 表示大循环所处的阶段：未开始 / 第一轮 / 第二轮 / 已完成
+private enum MistakeCyclePhase {
+    case notStarted
+    case first
+    case second
+    case finished
+}
+
+// MARK: - Review View Model
+
+class ReviewViewModel: ObservableObject {
+    @Published var currentWord: Word?
+    @Published var direction: QuizDirection = .cnToEn
+    @Published var state: QuizState = .idle
+    @Published var userInput: String = ""
+    @Published var result: QuizResult?
+    @Published var aiReferenceMeaning: String?
+    @Published var mistakeRemovedAfterWrong: Bool = false
+    @Published var isLoadingAI: Bool = false
+
+    let mode: ReviewMode
+    let manager: WordsManager
+
+    // MARK: - Shuffle State
+    private var shuffleQueue: [Int] = []
+    private var lastRoundOrder: [Int] = []
+    private var mistakeLastRoundOrder: [Int] = []
+
+    // MARK: - Mistake Cycle State
+    @Published var isMistakeCycleFinished: Bool = false
+    private var mistakePhase: MistakeCyclePhase = .notStarted
+    private var firstRoundDirections: [Int: QuizDirection] = [:]
+    private var mistakeShuffledIDs: [Int] = []
+
+    // MARK: - Init
+
+    init(mode: ReviewMode, manager: WordsManager) {
+        self.mode = mode
+        self.manager = manager
+        // Load word immediately so currentWord is set before first render,
+        // preventing the empty-state flash that causes layout bounce.
+        loadWordIfNeeded()
+    }
+    
+    func loadWordIfNeeded() {
+        guard currentWord == nil else { return }
+        loadNextWord()
+    }
+
+    // MARK: - Word Loading
+
+    func loadNextWord() {
+        switch mode {
+        case .learned:
+            loadLearnedNextWord()
+        case .mistakes:
+            loadMistakeNextWord()
+        }
+    }
+
+    // MARK: - Learned Mode Word Loading
+
+    private func loadLearnedNextWord() {
+        let ids = manager.learnedIDs
+        guard !ids.isEmpty else {
+            currentWord = nil
+            return
+        }
+
+        if shuffleQueue.isEmpty {
+            repeat {
+                shuffleQueue = ids.shuffled()
+            } while shuffleQueue.count > 1 && shuffleQueue == lastRoundOrder
+            lastRoundOrder = shuffleQueue
+        }
+
+        let candidateId = shuffleQueue.removeFirst()
+        currentWord = manager.words.first { $0.id == candidateId }
+        resetQuiz()
+    }
+
+    // MARK: - Mistake Mode Word Loading (Two-Round Cycle)
+    // mistakePhase 精确表示当前所在阶段，不会出现"第一轮未完成却跳到第二轮"的错误。
+
+    private func loadMistakeNextWord() {
+        guard !isMistakeCycleFinished else { return }
+
+        while true {
+            let currentIDs = manager.mistakeIDs
+            guard !currentIDs.isEmpty else {
+                currentWord = nil
+                return
+            }
+
+            // 1. 当前轮队列还有题：取出下一题（自动跳过中途被移出的单词）
+            while !mistakeShuffledIDs.isEmpty {
+                let candidateId = mistakeShuffledIDs.removeFirst()
+                guard currentIDs.contains(candidateId) else { continue }
+                currentWord = manager.words.first { $0.id == candidateId }
+                resetQuiz()
+                return
+            }
+
+            // 2. 当前轮队列已空，根据 phase 建立下一阶段
+            switch mistakePhase {
+            case .notStarted:
+                startFirstMistakeRound(currentIDs: currentIDs)
+            case .first:
+                startSecondMistakeRound(currentIDs: currentIDs)
+            case .second:
+                finishMistakeCycle()
+                return
+            case .finished:
+                return
+            }
+
+            // 3. startFirstMistakeRound / startSecondMistakeRound 已填充 mistakeShuffledIDs，
+            //    继续循环，从新队列取出第一题，不在此处 return。
+        }
+    }
+
+    // 建立第一轮：随机方向 + 随机顺序
+    private func startFirstMistakeRound(currentIDs: Set<Int>) {
+        firstRoundDirections = [:]
+        for id in currentIDs {
+            firstRoundDirections[id] = [.cnToEn, .enToCn].randomElement() ?? .cnToEn
+        }
+        repeat {
+            mistakeShuffledIDs = currentIDs.sorted().shuffled()
+        } while mistakeShuffledIDs.count > 1 && mistakeShuffledIDs == mistakeLastRoundOrder
+        mistakeLastRoundOrder = mistakeShuffledIDs
+        mistakePhase = .first
+    }
+
+    // 建立第二轮：保留第一轮方向记录（取反），过滤中途移出的单词
+    private func startSecondMistakeRound(currentIDs: Set<Int>) {
+        let stillValid = currentIDs.filter { firstRoundDirections[$0] != nil }
+        if stillValid.isEmpty {
+            finishMistakeCycle()
+            return
+        }
+        repeat {
+            mistakeShuffledIDs = stillValid.shuffled()
+        } while mistakeShuffledIDs.count > 1 && mistakeShuffledIDs == mistakeLastRoundOrder
+        mistakeLastRoundOrder = mistakeShuffledIDs
+        mistakePhase = .second
+    }
+
+    // 两轮全部完成
+    private func finishMistakeCycle() {
+        mistakePhase = .finished
+        isMistakeCycleFinished = true
+        currentWord = nil
+    }
+
+    // MARK: - Restart Cycle
+
+    func restartMistakeCycle() {
+        mistakePhase = .notStarted
+        firstRoundDirections = [:]
+        mistakeShuffledIDs = []
+        mistakeLastRoundOrder = []
+        isMistakeCycleFinished = false
+        currentWord = nil
+        loadMistakeNextWord()
+    }
+
+    // MARK: - Opposite Direction
+
+    private func oppositeDirection(_ direction: QuizDirection) -> QuizDirection {
+        return direction == .cnToEn ? .enToCn : .cnToEn
+    }
+
+
+    func resetQuiz() {
+        state = .idle
+        userInput = ""
+        result = nil
+        aiReferenceMeaning = nil
+        isLoadingAI = false
+        mistakeRemovedAfterWrong = false
+
+        if mode == .mistakes && currentWord != nil {
+            // 错题本模式：方向由第一轮记录决定，第二轮取反
+            if let savedDir = firstRoundDirections[currentWord!.id] {
+                direction = mistakePhase == .first ? savedDir : oppositeDirection(savedDir)
+            }
+        } else {
+            // 复习模式：随机分配方向
+            direction = [.cnToEn, .enToCn].randomElement() ?? .cnToEn
+        }
+    }
+
+    // MARK: - Actions
+
+    func submitAnswer() {
+        guard let word = currentWord else { return }
+
+        state = .checking
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.checkAnswer(word)
+        }
+    }
+
+    func showUnknown() {
+        guard let word = currentWord else { return }
+        manager.addToMistakes(word.id)
+        state = .showingAnswer
+    }
+
+    func nextWord() {
+        loadNextWord()
+    }
+
+    func addToMistakes() {
+        guard let word = currentWord else { return }
+        manager.addToMistakes(word.id)
+        nextWord()
+    }
+
+    func removeFromMistakes() {
+        guard let word = currentWord else { return }
+        manager.removeFromMistakes(word.id)
+        // 注意：不在此处调用 nextWord()，由 UI 层统一调用 onRemoveFromMistakes + onNext
+    }
+
+    // MARK: - Answer Checking
+
+    private func checkAnswer(_ word: Word) {
+        switch direction {
+        case .cnToEn:
+            checkEnglishAnswer(word)
+        case .enToCn:
+            checkChineseAnswer(word)
+        }
+    }
+
+    private func checkEnglishAnswer(_ word: Word) {
+        let isCorrect = userInput.trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased() == word.word.lowercased()
+
+        if !isCorrect {
+            manager.addToMistakes(word.id)
+        }
+        result = isCorrect ? .correct : .incorrect
+        if !isCorrect {
+            state = .showingAnswer  // 答错时展示正确答案
+        } else {
+            state = .result
+        }
+    }
+
+    private func checkChineseAnswer(_ word: Word) {
+        Task {
+            await callAI(word: word)
+        }
+    }
+
+    // MARK: - AI Call
+
+    private func callAI(word: Word) async {
+        isLoadingAI = true
+
+        let baseURL = UserDefaults.standard.string(forKey: "wordsM_baseURL") ?? ""
+        let apiKey = UserDefaults.standard.string(forKey: "wordsM_apiKey") ?? ""
+
+        if baseURL.isEmpty || apiKey.isEmpty {
+            // 未配置 AI，关键词交集 fallback
+            let normalized = userInput.trimmingCharacters(in: .whitespacesAndNewlines)
+            let isReasonable = !normalized.isEmpty && normalized._keywordOverlap(wordMeaning: word.meaning)
+            if !isReasonable {
+                manager.addToMistakes(word.id)
+            }
+            result = isReasonable ? .correct : .incorrect
+            state = .result
+            isLoadingAI = false
+            return
+        }
+
+        do {
+            let response = try await AIHelper.checkChineseAnswer(
+                word: word,
+                userInput: userInput,
+                baseURL: baseURL,
+                apiKey: apiKey,
+                model: UserDefaults.standard.string(forKey: "wordsM_selectedModel") ?? "gpt-4"
+            )
+            print("[WordsM AI] word=\(word.word) input=\(userInput) isReasonable=\(response.isReasonable) ref=\(response.referenceMeaning)")
+            aiReferenceMeaning = response.referenceMeaning
+            if !response.isReasonable {
+                manager.addToMistakes(word.id)
+            }
+            result = response.isReasonable ? .correct : .incorrect
+            state = .result
+        } catch {
+            print("[WordsM AI] error: \(error)")
+            // 网络失败，关键词交集 fallback
+            let normalized = userInput.trimmingCharacters(in: .whitespacesAndNewlines)
+            let isReasonable = !normalized.isEmpty && normalized._keywordOverlap(wordMeaning: word.meaning)
+            print("[WordsM AI] fallback(network error) word=\(word.word) input=\(userInput) isReasonable=\(isReasonable)")
+            if !isReasonable {
+                manager.addToMistakes(word.id)
+            }
+            result = isReasonable ? .correct : .incorrect
+            state = .result
+        }
+
+        isLoadingAI = false
+    }
+}
+
+// MARK: - Review View
+
+struct ReviewView: View {
+    let mode: ReviewMode
+    @StateObject private var viewModel: ReviewViewModel
+
+    init(mode: ReviewMode, manager: WordsManager) {
+        self.mode = mode
+        _viewModel = StateObject(wrappedValue: ReviewViewModel(mode: mode, manager: manager))
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // 错题本大循环完成页面
+            if mode == .mistakes && viewModel.isMistakeCycleFinished {
+                MistakeCycleEndView(onRetry: viewModel.restartMistakeCycle, onExit: dismissAction)
+            }
+            // 答题区
+            else if let word = viewModel.currentWord {
+                QuizCard(
+                    word: word,
+                    mode: mode,
+                    direction: viewModel.direction,
+                    state: viewModel.state,
+                    userInput: $viewModel.userInput,
+                    onSubmit: viewModel.submitAnswer,
+                    onUnknown: viewModel.showUnknown,
+                    onNext: viewModel.nextWord,
+                    onAddToMistakes: viewModel.addToMistakes,
+                    onRemoveFromMistakes: viewModel.removeFromMistakes,
+                    mistakeRemovedAfterWrong: $viewModel.mistakeRemovedAfterWrong,
+                    result: viewModel.result,
+                    aiReferenceMeaning: viewModel.aiReferenceMeaning,
+                    isLoadingAI: viewModel.isLoadingAI
+                )
+            } else {
+                EmptyState(mode: mode)
+            }
+        }
+#if !os(iOS)
+        .frame(minWidth: 440, maxWidth: 520, minHeight: 480, maxHeight: 560)
+#else
+        .onAppear { viewModel.loadWordIfNeeded() }
+#endif
+    }
+
+    @Environment(\.dismiss) private var dismiss
+
+    private func dismissAction() {
+        dismiss()
+    }
+}
+
+// MARK: - Quiz Card
+
+struct QuizCard: View {
+    let word: Word
+    let mode: ReviewMode
+    let direction: QuizDirection
+    let state: QuizState
+    @Binding var userInput: String
+    @FocusState private var isTextFieldFocused: Bool
+    var onSubmit: (() -> Void)?
+    var onUnknown: (() -> Void)?
+    var onNext: (() -> Void)?
+    var onAddToMistakes: (() -> Void)?
+    var onRemoveFromMistakes: (() -> Void)?
+    @Binding var mistakeRemovedAfterWrong: Bool
+    let result: QuizResult?
+    let aiReferenceMeaning: String?
+    let isLoadingAI: Bool
+
+    var body: some View {
+        VStack(spacing: 0) {
+            titleHeader
+
+            // 主体答题区
+            VStack(spacing: 24) {
+                questionView
+
+                if direction == .cnToEn && (state == .idle || state == .showingAnswer) {
+                    captchaInputView
+                }
+
+                if direction == .enToCn && (state == .idle || state == .showingAnswer) {
+                    chineseInputView
+                }
+
+                Spacer()
+
+                if let result = result {
+                    feedbackView(result: result)
+                }
+
+                if let meaning = aiReferenceMeaning {
+                    Text("参考释义：\(meaning)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.bottom, 8)
+                }
+
+                bottomButtons
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
+        }
+#if !os(iOS)
+        .frame(minWidth: 440, maxWidth: 520, minHeight: 480, maxHeight: 560)
+#endif
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                isTextFieldFocused = true
+            }
+        }
+        .onChange(of: word.word) { _, _ in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                isTextFieldFocused = true
+            }
+        }
+        .onChange(of: direction) { _, _ in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                isTextFieldFocused = true
+            }
+        }
+        .onChange(of: state) { _, newValue in
+            if newValue == .idle {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    isTextFieldFocused = true
+                }
+            }
+        }
+    }
+
+    // MARK: - Question View
+
+    private var questionView: some View {
+        VStack(spacing: 16) {
+            if direction == .cnToEn {
+                // 看中文写英文：显示释义 + 词性
+                VStack(spacing: 8) {
+                    Text(word.meaning)
+                        .font(.title2)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(3)
+#if os(iOS)
+                        .padding(.horizontal)
+#endif
+                    Text(word.pos)
+                        .font(.caption)
+                        .foregroundStyle(.blue)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 4)
+                        .background(Color.blue.opacity(0.1))
+                        .clipShape(Capsule())
+                }
+#if !os(iOS)
+                .padding(.horizontal)
+#endif
+            } else {
+                // 看英文写中文：显示单词
+                VStack(spacing: 8) {
+                    Text(word.word)
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.5)
+                        .foregroundStyle(.primary)
+                    Text(word.phonetic)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            // 如果显示答案，补充完整信息
+            if state == .showingAnswer {
+                Divider()
+                    .padding(.vertical, 16)
+                VStack(spacing: 12) {
+                    Text(word.word)
+                        .font(.title)
+                    Text(word.phonetic)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Text(word.pos)
+                        .font(.caption)
+                        .foregroundStyle(.blue)
+                    Text(word.meaning)
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    // MARK: - Captcha Input View (英文验证码式输入)
+    
+    /// 验证码式输入框 - 完全自定义实现
+    private var captchaInputView: some View {
+        let charCount = word.word.count
+#if os(iOS)
+        let itemWidth: CGFloat = min(36, (UIScreen.main.bounds.width - 80) / CGFloat(max(charCount, 1)))
+        let spacing: CGFloat = 6
+#else
+        let itemWidth: CGFloat = 36
+        let spacing: CGFloat = 12
+#endif
+        let totalWidth: CGFloat = CGFloat(charCount) * itemWidth + CGFloat(max(0, charCount - 1)) * spacing
+
+        return ZStack {
+            // 1. 底层视觉渲染层
+            HStack(spacing: spacing) {
+                ForEach(0..<charCount, id: \.self) { index in
+                    VStack(spacing: 6) {
+                        // 字符或光标
+                        ZStack {
+                            if index < userInput.count {
+                                let charIndex = userInput.index(userInput.startIndex, offsetBy: index)
+                                Text(String(userInput[charIndex]))
+                                    .font(.system(size: 32, weight: .bold, design: .monospaced))
+                                    .foregroundStyle(.primary)
+                            } else if index == userInput.count && state == .idle && isTextFieldFocused {
+                                // 自定义伪光标
+                                Rectangle()
+                                    .fill(Color.blue)
+                                    .frame(width: 2, height: 28)
+                            } else {
+                                Color.clear.frame(height: 28)
+                            }
+                        }
+                        .frame(height: 36)
+
+                        // 对应的下划线
+                        Rectangle()
+                            .fill(index <= userInput.count ? Color.blue : Color.secondary.opacity(0.4))
+                            .frame(width: itemWidth, height: 3)
+                            .cornerRadius(1.5)
+                    }
+                    .frame(width: itemWidth)
+                }
+            }
+
+            // 2. 顶层：完全覆盖的透明 TextField 接收输入
+            TextField("", text: $userInput)
+                .focused($isTextFieldFocused)
+                .textFieldStyle(.plain)
+                .foregroundStyle(.clear) 
+                .tint(.clear)
+                .accentColor(.clear) 
+                .opacity(0.01) 
+                .disableAutocorrection(true)
+                .frame(width: totalWidth, height: 50)
+                .contentShape(Rectangle())
+                .disabled(state == .result)
+                .onSubmit {
+                    if state == .idle {
+                        onSubmit?()
+                    } else {
+                        onNext?()
+                    }
+                }
+                .onChange(of: userInput) { _, newValue in
+                    if newValue.count > charCount {
+                        userInput = String(newValue.prefix(charCount))
+                    }
+                }
+        }
+        .padding(.horizontal, 20)
+    }
+
+    // MARK: - Chinese Input View
+
+    private var chineseInputView: some View {
+        ZStack {
+            if userInput.isEmpty && state == .idle {
+                Text("输入中文释义…")
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .allowsHitTesting(false)
+            }
+            TextField("", text: $userInput)
+                .font(.system(size: 22, weight: .medium))
+                .textFieldStyle(.plain)
+                .multilineTextAlignment(.center)
+                .focused($isTextFieldFocused)
+                .disabled(state == .result)
+                .onSubmit {
+                    if state == .idle {
+                        onSubmit?()
+                    } else {
+                        onNext?()
+                    }
+                }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 72)
+        .padding(.horizontal, 40)
+        .padding(.top, 16)
+    }
+
+    // MARK: - Feedback View
+
+    private func feedbackView(result: QuizResult) -> some View {
+        VStack(spacing: 12) {
+            Image(systemName: result == .correct ? "checkmark.circle.fill" : "xmark.circle.fill")
+                .font(.system(size: 48))
+                .foregroundStyle(result == .correct ? .green : .red)
+            Text(result == .correct ? "回答正确！" : "回答错误")
+                .font(.title2)
+                .fontWeight(.semibold)
+        }
+        .padding(.vertical, 20)
+    }
+
+    // MARK: - Bottom Buttons
+
+    private var bottomButtons: some View {
+        VStack(spacing: 16) {
+            switch state {
+            case .idle, .showingAnswer:
+                HStack(spacing: 16) {
+                    if state == .showingAnswer {
+                        Button("下一个") {
+                            onNext?()
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                    } else {
+                        Button("不知道") {
+                            onUnknown?()
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+
+                        Button(state == .idle ? "提交" : "下一个") {
+                            if state == .idle {
+                                onSubmit?()
+                            } else {
+                                onNext?()
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        .disabled(userInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                }
+
+            case .checking:
+                ProgressView()
+
+            case .result:
+                VStack(spacing: 16) {
+                    Button("下一个") {
+                        if mistakeRemovedAfterWrong {
+                            onRemoveFromMistakes?()
+                        }
+                        onNext?()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
+                    .controlSize(.large)
+                    .frame(maxWidth: .infinity)
+
+                    if mode == .mistakes && result == .correct {
+                        Button("移出错题本") {
+                            onRemoveFromMistakes?()
+                            onNext?()
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                        .frame(maxWidth: .infinity)
+                    } else if mode == .learned && result == .incorrect && !mistakeRemovedAfterWrong {
+                        // 复习模式下答错自动加入错题本，显示"AI判错？移出错题本"按钮
+                        Button("AI判错？移出错题本") {
+                            mistakeRemovedAfterWrong = true
+                            // 只标记状态，不立即切题，等用户点"下一个"
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                        .frame(maxWidth: .infinity)
+                    } else if mode == .learned && result == .incorrect && mistakeRemovedAfterWrong {
+                        Text("已移出")
+                            .font(.system(size: 16))
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+
+            case .done:
+                EmptyView()
+            }
+        }
+        .padding(.horizontal, 40)
+    }
+
+    private var titleHeader: some View {
+        Text(mode == .learned ? "复习模式" : "错题本")
+            .font(.title3)
+            .fontWeight(.semibold)
+            .foregroundStyle(.primary)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
+            .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - Mistake Cycle End View
+
+struct MistakeCycleEndView: View {
+    var onRetry: () -> Void
+    var onExit: () -> Void
+
+    var body: some View {
+        VStack(spacing: 24) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 56))
+                .foregroundStyle(.green)
+            Text("你已刷完一次错题本啦！")
+                .font(.title2)
+                .fontWeight(.semibold)
+            HStack(spacing: 16) {
+                Button("再来一轮") {
+                    onRetry()
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .frame(maxWidth: .infinity)
+
+                Button("退出") {
+                    onExit()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.top, 60)
+        .padding(.horizontal, 40)
+    }
+}
+
+// MARK: - Empty State
+
+struct EmptyState: View {
+    let mode: ReviewMode
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(systemName: mode == .learned ? "book.open.fill" : "trash.fill")
+                .font(.system(size: 48))
+                .foregroundStyle(.secondary)
+            Text(mode == .learned ? "没有已学单词" : "错题本为空")
+                .font(.title2)
+            Text(mode == .learned
+                ? "请先在探索模式中学习一些单词"
+                : "答错后会自动添加到错题本")
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding()
+    }
+}
+
+// MARK: - AI Helper
+
+struct AIHelper {
+    struct AIResponse: Decodable {
+        let isReasonable: Bool
+        let referenceMeaning: String
+    }
+
+    static func checkChineseAnswer(
+        word: Word,
+        userInput: String,
+        baseURL: String,
+        apiKey: String,
+        model: String
+    ) async throws -> AIResponse {
+        let endpoint = URL(string: "\(baseURL.rstripSlash())/chat/completions")!
+
+        let body: [String: Any] = [
+            "model": model,
+            "messages": [
+                ["role": "system", "content": """
+你是一名英语单词教学评估助手。判断用户写的中文释义是否合理。
+
+判定标准：
+- 用户答案与正确释义核心含义一致 → isReasonable: true
+- 用户回答了同义词、近义词、或至少一个主要义项 → isReasonable: true
+- 用户答案明显偏题、写了其他单词的释义 → isReasonable: false
+- 用户答案过短、无意义（如"对"、"好"）或仅注音不含含义 → isReasonable: false
+
+规则：
+1. 多义词有多个义项（用分号或序号分隔），用户答出其中一个主要义项即算合理。
+2. 用户答案可以比正确释义更口语化或更简洁，只要核心含义正确即可。
+3. 义项顺序不同不算错，以含义匹配为准。
+4. referenceMeaning 必须固定输出 word.meaning 的原始内容，不修改、不重写。
+5. 只返回 JSON，不要包含任何其他文字或 markdown。
+"""],
+                ["role": "user", "content": """
+请判断以下用户对英文单词的中文释义是否合理：
+
+- 英文单词：\(word.word)
+- 词性：\(word.pos)
+- 正确释义：\(word.meaning)
+- 用户回答：\(userInput)
+
+只返回 JSON，格式为：{"isReasonable": true/false, "referenceMeaning": "<word的原始释义>"}
+"""],
+            ],
+            "temperature": 0.1,
+            "thinking": false
+        ]
+
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        print("[WordsM AI] REQUEST_BODY: \(String(data: request.httpBody!, encoding: .utf8) ?? "(nil)")")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw NSError(domain: "AIRequest", code: -1, userInfo: nil)
+        }
+
+        let rawText = String(data: data, encoding: .utf8) ?? "(empty)"
+        print("[WordsM AI] RAW_RESPONSE: \(rawText)")
+
+        // 从 OpenAI 兼容格式的 choices[0].message.content 中提取 AI 返回的 JSON
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let choices = json["choices"] as? [[String: Any]],
+           let firstChoice = choices.first,
+           let message = firstChoice["message"] as? [String: Any],
+           let contentStr = message["content"] as? String {
+            print("[WordsM AI] PARSED_CONTENT: \(contentStr)")
+            // 优先用 JSONDecoder 解析完整 JSON
+            if let respData = contentStr.data(using: .utf8),
+               let resp = try? JSONDecoder().decode(AIResponse.self, from: respData) {
+                return resp
+            }
+            // 容错：尝试从损坏的 JSON 字符串中提取 isReasonable
+            let isReasonable: Bool
+            if contentStr.contains("\"isReasonable\": true") {
+                isReasonable = true
+            } else if contentStr.contains("\"isReasonable\": false") {
+                isReasonable = false
+            } else {
+                throw NSError(domain: "AIResponseParse", code: -1,
+                              userInfo: [NSLocalizedDescriptionKey: "无法从 AI 响应中提取 isReasonable"])
+            }
+            // 提取 referenceMeaning：取 word.meaning 原始值作为 fallback
+            return AIResponse(isReasonable: isReasonable, referenceMeaning: word.meaning)
+        }
+        throw NSError(domain: "AIResponseParse", code: -1,
+                      userInfo: [NSLocalizedDescriptionKey: "AI 返回了非预期格式，无法解析 isReasonable"])
+    }
+}
+
+// MARK: - String Extension
+
+extension String {
+    /// 判断用户输入与单词释义之间是否有足够的中文关键词交集
+    func _keywordOverlap(wordMeaning: String) -> Bool {
+        let inputTokens = self
+            .components(separatedBy: CharacterSet.punctuationCharacters.union(.whitespaces))
+            .filter { !$0.isEmpty }
+        let meaningParts = wordMeaning
+            .components(separatedBy: CharacterSet(charactersIn: "；,，。、"))
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        let meaningTokens = meaningParts.joined(separator: " ")
+            .components(separatedBy: CharacterSet.punctuationCharacters.union(.whitespaces))
+            .filter { !$0.isEmpty }
+        let hits = inputTokens.filter { meaningTokens.contains($0) }.count
+        return hits >= (inputTokens.count >= 2 ? 2 : 1)
+    }
+
+    func rstripSlash() -> String {
+        hasSuffix("/") ? String(dropLast()) : self
+    }
+}
+
+// MARK: - Preview
+
+#Preview {
+    ReviewView(mode: .learned, manager: WordsManager())
+}
+
+
+================================================================================
+FILE: SettingsView.swift
+================================================================================
+
+import SwiftUI
+import Combine
+
+// MARK: - Settings View Model
+
+class SettingsViewModel: ObservableObject {
+    @Published var baseURL: String = ""
+    @Published var apiKey: String = ""
+    @Published var selectedModel: String = ""
+    @Published var availableModels: [String] = []
+    @Published var isFetchingModels: Bool = false
+    @Published var fetchError: String?
+
+    private let baseURLKey = "wordsM_baseURL"
+    private let apiKeyKey = "wordsM_apiKey"
+    private let selectedModelKey = "wordsM_selectedModel"
+
+    init() {
+        baseURL = UserDefaults.standard.string(forKey: baseURLKey) ?? ""
+        apiKey = UserDefaults.standard.string(forKey: apiKeyKey) ?? ""
+        selectedModel = UserDefaults.standard.string(forKey: selectedModelKey) ?? ""
+    }
+
+    func save() {
+        UserDefaults.standard.set(baseURL, forKey: baseURLKey)
+        UserDefaults.standard.set(apiKey, forKey: apiKeyKey)
+        UserDefaults.standard.set(selectedModel, forKey: selectedModelKey)
+    }
+
+    func fetchModels() async {
+        guard !baseURL.isEmpty, !apiKey.isEmpty else {
+            fetchError = "请先填写 Base URL 和 API Key"
+            return
+        }
+
+        isFetchingModels = true
+        fetchError = nil
+
+        do {
+            let endpoint = URL(string: "\(baseURL)/models")!
+            var request = URLRequest(url: endpoint)
+            request.httpMethod = "GET"
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
+                throw NSError(domain: "FetchModels", code: -1, userInfo: [NSLocalizedDescriptionKey: "请求失败"])
+            }
+
+            // 解析模型列表
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let models = json["data"] as? [[String: Any]] {
+                availableModels = models.compactMap { $0["id"] as? String }
+                // 如果当前选择的模型不在列表中，清空选择
+                if !selectedModel.isEmpty && !availableModels.contains(selectedModel) {
+                    selectedModel = ""
+                }
+            }
+        } catch {
+            fetchError = "获取模型列表失败: \(error.localizedDescription)"
+            availableModels = []
+        }
+
+        isFetchingModels = false
+        save()
+    }
+}
+
+// MARK: - Sync Result Toast
+
+struct SyncResultToast: View {
+    let message: String
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(message)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.primary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(Color.black.opacity(0.05))
+                .cornerRadius(12)
+                .shadow(color: .black.opacity(0.12), radius: 6, y: 2)
+        }
+        .padding(.bottom, 12)
+    }
+}
+
+// MARK: - Settings View
+
+struct SettingsView: View {
+    @StateObject private var vm = SettingsViewModel()
+    @EnvironmentObject var manager: WordsManager
+    @StateObject private var syncManager: LANSyncManager
+
+    init(manager: WordsManager) {
+        _syncManager = StateObject(wrappedValue: LANSyncManager(manager: manager))
+    }
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            Form {
+                Section("AI 配置") {
+                    LabeledContent("Base URL") {
+                        TextField("", text: $vm.baseURL)
+                            .textContentType(.URL)
+                    }
+
+                    LabeledContent("API Key") {
+                        SecureField("", text: $vm.apiKey)
+                            .textContentType(.password)
+                    }
+                }
+
+                Section("模型选择") {
+                    HStack {
+                        if vm.availableModels.isEmpty {
+                            Text("未选择模型")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Picker("模型", selection: $vm.selectedModel) {
+                                Text("请选择模型").tag("")
+                                ForEach(vm.availableModels, id: \.self) { model in
+                                    Text(model).tag(model)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .frame(width: 200)
+                        }
+
+                        Button(action: {
+                            Task {
+                                await vm.fetchModels()
+                            }
+                        }) {
+                            if vm.isFetchingModels {
+                                ProgressView()
+                            } else {
+                                Text("从 API 获取")
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(vm.baseURL.isEmpty || vm.apiKey.isEmpty || vm.isFetchingModels)
+                    }
+
+                    if let error = vm.fetchError {
+                        Text(error)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                }
+
+                Section("局域网同步") {
+                    if syncManager.devices.isEmpty {
+                        HStack {
+                            ProgressView()
+                            Text("正在扫描局域网...")
+                                .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        ForEach(syncManager.devices) { device in
+                            let state = syncManager.syncStates[device.id] ?? .idle
+                            HStack {
+                                Text(device.name)
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                                syncButton(for: device, state: state)
+                            }
+                        }
+                    }
+                }
+            }
+            .formStyle(.grouped)
+            .onAppear {
+                syncManager.startDiscovery()
+            }
+            .onDisappear {
+                syncManager.stopDiscovery()
+            }
+            .overlay(alignment: .bottom) {
+                if let msg = syncManager.toastMessage {
+                    SyncResultToast(message: msg)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .bottom).combined(with: .opacity),
+                            removal: .move(edge: .bottom).combined(with: .opacity)
+                        ))
+                        .padding(.horizontal)
+                }
+            }
+        }
+    }
+
+    // MARK: - Sync Button
+
+    @ViewBuilder
+    private func syncButton(for device: DiscoveredDevice, state: SyncUIState) -> some View {
+        switch state {
+        case .idle:
+            Button("同步") {
+                syncManager.sync(with: device.id)
+            }
+            .buttonStyle(.bordered)
+
+        case .syncing:
+            ProgressView()
+                .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+
+        case .success:
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(.green)
+
+        case .failed(let reason):
+            Button {
+                // Reset failed state
+                // (syncStates is managed internally; tapping doesn't retry)
+            } label: {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+            }
+            .help(reason)
+        }
+    }
+}
+
+// MARK: - Preview
+
+#Preview {
+    SettingsView(manager: WordsManager())
+}
+
+
+================================================================================
+FILE: WordsM.entitlements
+================================================================================
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>com.apple.security.network.client</key>
+    <true/>
+    <key>com.apple.security.network.server</key>
+    <true/>
+</dict>
+</plist>
+
+
+================================================================================
+FILE: WordsMApp.swift
+================================================================================
+
+import SwiftUI
+import Combine
+
+@main
+struct WordsMApp: App {
+    @StateObject private var wordsManager = WordsManager()
+
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+                .environmentObject(wordsManager)
+        }
+        .windowStyle(.hiddenTitleBar)
+        .windowToolbarStyle(.unified)
+        Settings {
+            SettingsView(manager: wordsManager)
+                .environmentObject(wordsManager)
+        }
+    }
+}
+
+
+================================================================================
+FILE: WordsManager.swift
+================================================================================
+
+import SwiftUI
+import Combine
+
+// MARK: - Word Model
+
+struct Word: Codable, Identifiable {
+    let id: Int
+    let word: String
+    let phonetic: String
+    let pos: String
+    let meaning: String
+}
+
+// MARK: - Words Manager
+
+class WordsManager: ObservableObject {
+    static let shared = WordsManager()
+
+    @Published var words: [Word] = []
+    @Published var learnedIDs: Set<Int> = []
+    @Published var mistakeIDs: Set<Int> = []
+
+    private let documentsURL: URL
+    private let learnedURL: URL
+    private let mistakesURL: URL
+
+    // MARK: - Init
+
+    init() {
+        guard let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            fatalError("Cannot get documents directory")
+        }
+        self.documentsURL = docs
+        self.learnedURL = docs.appendingPathComponent("learned.json")
+        self.mistakesURL = docs.appendingPathComponent("mistakes.json")
+
+        loadWords()
+        loadLearned()
+        loadMistakes()
+    }
+
+    // MARK: - Words
+
+    private func loadWords() {
+        guard let bundleURL = Bundle.main.url(forResource: "words", withExtension: "json") else {
+            print("[WordsManager] words.json not found in bundle")
+            return
+        }
+        do {
+            let data = try Data(contentsOf: bundleURL)
+            let decoded = try JSONDecoder().decode([Word].self, from: data)
+            print("[WordsManager] words loaded: \(decoded.count)")
+            DispatchQueue.main.async {
+                self.words = decoded
+            }
+        } catch {
+            print("[WordsManager] Failed to load words: \(error)")
+        }
+    }
+
+    // MARK: - Learned
+
+    func loadLearned() {
+        guard let data = try? Data(contentsOf: learnedURL) else { return }
+        do {
+            let ids = try JSONDecoder().decode([Int].self, from: data)
+            DispatchQueue.main.async {
+                self.learnedIDs = Set(ids)
+            }
+        } catch {
+            print("[WordsManager] Failed to load learned: \(error)")
+        }
+    }
+
+    func markAsLearned(_ id: Int) {
+        learnedIDs.insert(id)
+        saveLearned()
+    }
+
+    private func saveLearned() {
+        let array = Array(learnedIDs).sorted()
+        save(array, to: learnedURL)
+    }
+
+    // MARK: - Mistakes
+
+    func loadMistakes() {
+        guard let data = try? Data(contentsOf: mistakesURL) else { return }
+        do {
+            let ids = try JSONDecoder().decode([Int].self, from: data)
+            DispatchQueue.main.async {
+                self.mistakeIDs = Set(ids)
+            }
+        } catch {
+            print("[WordsManager] Failed to load mistakes: \(error)")
+        }
+    }
+
+    func addToMistakes(_ id: Int) {
+        mistakeIDs.insert(id)
+        saveMistakes()
+    }
+
+    func removeFromMistakes(_ id: Int) {
+        mistakeIDs.remove(id)
+        saveMistakes()
+    }
+
+    private func saveMistakes() {
+        let array = Array(mistakeIDs).sorted()
+        save(array, to: mistakesURL)
+    }
+
+    // MARK: - LAN Sync Merge API
+
+    /// Merges remote learned and mistake IDs into local state via union.
+    /// Returns the count of newly added IDs for each category.
+    @discardableResult
+    func mergeSyncedData(
+        remoteLearnedIDs: Set<Int>,
+        remoteMistakeIDs: Set<Int>
+    ) -> SyncMergeResult {
+        let oldLearned = learnedIDs
+        let oldMistakes = mistakeIDs
+
+        learnedIDs.formUnion(remoteLearnedIDs)
+        mistakeIDs.formUnion(remoteMistakeIDs)
+
+        saveLearned()
+        saveMistakes()
+
+        let addedLearned = learnedIDs.subtracting(oldLearned).count
+        let addedMistakes = mistakeIDs.subtracting(oldMistakes).count
+
+        return SyncMergeResult(addedLearnedCount: addedLearned, addedMistakeCount: addedMistakes)
+    }
+
+    // MARK: - Helpers
+
+    func randomUnlearnedWord() -> Word? {
+        let remaining = words.filter { !learnedIDs.contains($0.id) }
+        guard !remaining.isEmpty else { return nil }
+        return remaining.randomElement()
+    }
+
+    func randomLearnedWord() -> Word? {
+        guard let id = learnedIDs.sorted().randomElement() else { return nil }
+        return words.first { $0.id == id }
+    }
+
+    func randomMistakeWord() -> Word? {
+        guard let id = mistakeIDs.sorted().randomElement() else { return nil }
+        return words.first { $0.id == id }
+    }
+
+    private func save(_ array: [Int], to url: URL) {
+        do {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.sortedKeys, .prettyPrinted]
+            let data = try encoder.encode(array)
+            try data.write(to: url)
+        } catch {
+            print("[WordsManager] Save failed: \(error)")
+        }
+    }
+}
+
+
+//words.json省略
