@@ -94,6 +94,16 @@ struct CustomModeView: View {
                 .frame(maxWidth: .infinity)
 
                 Button {
+                    markAsLearned()
+                } label: {
+                    Label("设为已学", systemImage: "checkmark.circle.fill")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+                .frame(maxWidth: .infinity)
+                .disabled(selectedIDs.isEmpty)
+
+                Button {
                     showReview = true
                 } label: {
                     Label("开始复习", systemImage: "play.fill")
@@ -201,6 +211,15 @@ struct CustomModeView: View {
     }
 
     private func clearAllSelection() {
+        selectedIDs.removeAll()
+        saveSelected()
+    }
+
+    private func markAsLearned() {
+        for id in selectedIDs {
+            manager.markAsLearned(id)
+        }
+        // 清空选择
         selectedIDs.removeAll()
         saveSelected()
     }

@@ -31,7 +31,7 @@ final class LANSyncService {
         do {
             listener = try NWListener(service: service, using: NWParameters.tcp)
         } catch {
-            print("[LANSyncService] Failed to create listener: \(error)")
+            print("[LANSyncService] Fail/Volumes/SSD/home/shuzhongliu/Projects/WordsM/WordsMed to create listener: \(error)")
             return
         }
         guard let listener = listener else { return }

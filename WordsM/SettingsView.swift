@@ -343,23 +343,35 @@ struct SettingsView: View {
             let data = try Data(contentsOf: url)
             let words = try JSONDecoder().decode([Word].self, from: data)
             
+            print("[Settings] Importing words from: \(url.lastPathComponent), count: \(words.count)")
+            
             // 验证 word 字段不为空
             let validWords = words.filter { !$0.word.isEmpty }
             
             if validWords.count != words.count {
-                return (0, 0)  // 无效词条由 importCustomWords 内部处理
+                print("[Settings] Filtered out \(words.count - validWords.count) invalid words")
+                return (0, 0)
             }
             
             let beforeCount = manager.customWords.count
-            manager.importCustomWords(validWords)
+            manager.importCustomWords(validWords, sourceURL: url)
             let afterCount = manager.customWords.count
+            
+            print("[Settings] Before: \(beforeCount), After: \(afterCount), Imported: \(manager.importSourceURLs.count) sources")
             
             let newCount = afterCount - beforeCount
             let skipCount = words.count - newCount
             return (newCount, skipCount)
         } catch {
+            print("[Settings] Import error: \(error)")
             return (0, 0)
         }
+    }
+
+    private func getWordCount(for url: URL) -> Int {
+        guard let data = try? Data(contentsOf: url) else { return 0 }
+        guard let words = try? JSONDecoder().decode([Word].self, from: data) else { return 0 }
+        return words.filter { !$0.word.isEmpty }.count
     }
 }
 

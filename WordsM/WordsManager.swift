@@ -18,6 +18,7 @@ class WordsManager: ObservableObject {
 
     @Published var words: [Word] = []
     @Published var customWords: [Word] = []
+    @Published var importSourceURLs: [URL] = []  // 记录导入的文件路径
     @Published var learnedIDs: Set<Int> = []
     @Published var mistakeIDs: Set<Int> = []
     @Published var mistakeCounts: [Int: Int] = [:]  // 记录每个单词的错误次数
@@ -83,7 +84,14 @@ class WordsManager: ObservableObject {
         }
     }
 
-    func importCustomWords(_ newWords: [Word]) {
+    func importCustomWords(_ newWords: [Word], sourceURL: URL? = nil) {
+        // 记录导入源
+        if let url = sourceURL {
+            if !importSourceURLs.contains(url) {
+                importSourceURLs.append(url)
+            }
+        }
+        
         // 获取当前所有词库（内置 + 自定义）的最大 id
         let allWords = getCombinedWords()
         let maxId = allWords.map { $0.id }.max() ?? 0
@@ -135,6 +143,25 @@ class WordsManager: ObservableObject {
         } catch {
             print("[WordsManager] Save custom words failed: \(error)")
         }
+    }
+
+    func removeImportSource(_ url: URL) {
+        // 获取该文件中的单词
+        guard let data = try? Data(contentsOf: url) else { return }
+        guard let words = try? JSONDecoder().decode([Word].self, from: data) else { return }
+        
+        // 找出这些单词在自定义词库中的 ID
+        let idsToRemove = Set(words.compactMap { word in
+            customWords.first(where: { $0.word.lowercased() == word.word.lowercased() })?.id
+        })
+        
+        // 从自定义词库中移除
+        customWords.removeAll { word in idsToRemove.contains(word.id) }
+        saveCustomWords()
+        
+        // 移除记录
+        importSourceURLs.removeAll { $0 == url }
+        print("[WordsManager] removed import source: \(url.lastPathComponent), remaining custom words: \(customWords.count)")
     }
 
     // MARK: - Learned
