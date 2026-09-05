@@ -235,7 +235,29 @@ struct SettingsView: View {
                             .foregroundStyle(.red)
                     }
                     
-                    if manager.customWords.count > 0 {
+                    // 显示已导入的词库文件列表
+                    if !manager.importSourceURLs.isEmpty {
+                        ForEach(manager.importSourceURLs, id: \.self) { url in
+                            HStack {
+                                VStack(alignment: .leading) {
+                                    Text(url.lastPathComponent)
+                                        .font(.caption)
+                                    Text("\(getWordCount(for: url)) 词")
+                                        .font(.caption2)
+                                        .foregroundStyle(.tertiary)
+                                }
+                                Spacer()
+                                Button(role: .destructive) {
+                                    manager.removeImportSource(url)
+                                } label: {
+                                    Image(systemName: "trash")
+                                        .font(.caption)
+                                }
+                            }
+                        }
+                    }
+                    
+                    if manager.customWords.count > 0 && manager.importSourceURLs.isEmpty {
                         HStack {
                             Text("自定义词库: \(manager.customWords.count) 词")
                                 .font(.caption)
@@ -243,6 +265,7 @@ struct SettingsView: View {
                             Spacer()
                             Button("清除", role: .destructive) {
                                 manager.customWords.removeAll()
+                                manager.importSourceURLs.removeAll()
                                 manager.saveCustomWords()
                             }
                         }
