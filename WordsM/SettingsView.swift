@@ -208,12 +208,21 @@ struct SettingsView: View {
                     .fileImporter(
                         isPresented: $fileImporterShown,
                         allowedContentTypes: [.json],
-                        allowsMultipleSelection: false
+                        allowsMultipleSelection: true
                     ) { result in
                         switch result {
                         case .success(let urls):
-                            if let url = urls.first {
-                                importWords(from: url)
+                            var totalNew = 0
+                            var totalSkip = 0
+                            for url in urls {
+                                let (newCount, skipCount) = importWords(from: url)
+                                totalNew += newCount
+                                totalSkip += skipCount
+                            }
+                            if totalNew > 0 {
+                                importError = "成功导入 \(totalNew) 个新单词" + (totalSkip > 0 ? "，跳过 \(totalSkip) 个重复" : "")
+                            } else if totalSkip > 0 {
+                                importError = "所有 \(totalSkip) 个单词已在词库中"
                             }
                         case .failure(let error):
                             importError = "导入失败: \(error.localizedDescription)"
@@ -305,8 +314,8 @@ struct SettingsView: View {
         }
     }
 
-    private func importWords(from url: URL) {
-        importError = ""
+    /// 返回 (新增数量, 跳过数量)
+    private func importWords(from url: URL) -> (newCount: Int, skipCount: Int) {
         do {
             let data = try Data(contentsOf: url)
             let words = try JSONDecoder().decode([Word].self, from: data)
@@ -315,21 +324,18 @@ struct SettingsView: View {
             let validWords = words.filter { !$0.word.isEmpty }
             
             if validWords.count != words.count {
-                importError = "已过滤掉 \(words.count - validWords.count) 个无效词条（word 字段为空）"
-                return
+                return (0, 0)  // 无效词条由 importCustomWords 内部处理
             }
             
             let beforeCount = manager.customWords.count
             manager.importCustomWords(validWords)
             let afterCount = manager.customWords.count
             
-            if afterCount == beforeCount {
-                importError = "所有单词已在词库中，无新增"
-            } else {
-                importError = "成功导入 \(afterCount - beforeCount) 个新单词"
-            }
+            let newCount = afterCount - beforeCount
+            let skipCount = words.count - newCount
+            return (newCount, skipCount)
         } catch {
-            importError = "导入失败: \(error.localizedDescription)"
+            return (0, 0)
         }
     }
 }
