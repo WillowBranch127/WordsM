@@ -158,17 +158,33 @@ struct CustomModeView: View {
     // MARK: - Sections
 
     private var sectionForLearned: (title: String, words: [Word])? {
+        let query = searchText.lowercased()
         let learnedWords = manager.words
             .filter { manager.learnedIDs.contains($0.id) }
             .sorted { $0.word.lowercased() < $1.word.lowercased() }
+            .filter { word in
+                query.isEmpty || 
+                word.word.lowercased().contains(query) ||
+                word.meaning.contains(searchText) ||
+                word.phonetic.lowercased().contains(query) ||
+                word.pos.lowercased().contains(query)
+            }
         guard !learnedWords.isEmpty else { return nil }
         return ("已学单词 (\(learnedWords.count))", learnedWords)
     }
 
     private var sectionForUnlearned: (title: String, words: [Word])? {
+        let query = searchText.lowercased()
         let unlearnedWords = manager.words
             .filter { !manager.learnedIDs.contains($0.id) }
             .sorted { $0.word.lowercased() < $1.word.lowercased() }
+            .filter { word in
+                query.isEmpty || 
+                word.word.lowercased().contains(query) ||
+                word.meaning.contains(searchText) ||
+                word.phonetic.lowercased().contains(query) ||
+                word.pos.lowercased().contains(query)
+            }
         guard !unlearnedWords.isEmpty else { return nil }
         return ("未学单词 (\(unlearnedWords.count))", unlearnedWords)
     }
